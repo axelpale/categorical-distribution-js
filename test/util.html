@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>QUnit test suite</title>
+  <link rel="stylesheet" href="lib/qunit-1.13.0.css">
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <script src="lib/qunit-1.13.0.js"></script>
+  <script src="../categorical-distribution.js"></script>
+  <script type="text/javascript">
+    var unit = CategoricalDistribution.util;
+
+    test('isArray', function testCase() {
+      var isArray = unit.isArray;
+      ok(isArray([]));
+      ok(!isArray('a'));
+      ok(!isArray());
+      ok(!isArray(1));
+      ok(!isArray({}));
+      ok(!isArray(/a/i)); // RegExp
+      ok(!isArray(null));
+    });
+    
+    test('toArray', function testCase() {
+      var toArray = unit.toArray;
+      deepEqual(toArray(['a']), ['a']);
+      deepEqual(toArray('a'), ['a']);
+      deepEqual(toArray(1), [1]);
+      deepEqual(toArray(), []);
+      deepEqual(toArray(null), []);
+      deepEqual(toArray(Infinity), [Infinity]);
+      deepEqual(toArray([]), []);
+    });
+    
+    test('randomFromInterval', function testCase() {
+      var randomFromInterval = unit.randomFromInterval;
+      var i, x;
+      var n = 1000;
+      var min = 1;
+      var max = 2;
+      var numIn = 0;
+      for (i = 0; i < n; i += 1) {
+        x = randomFromInterval(min, max);
+        if (min <= x || x < max) {
+          numIn += 1;
+        }
+      }
+
+      equal(numIn, n, 'all random samples should be in the interval');
+    });
+
+    test('randomOrderedSetFromInterval', function testCase() {
+      // Non-deterministic test!!!
+      // Test that distribution is close to uniform.
+      var rosfi = unit.randomOrderedSetFromInterval;
+      var i, j, orderedSet, x;
+      var n = 1000,
+          m = 10;
+      var min = 0, // inclusive
+          max = 10; // exclusive
+      var dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+      // Size test
+      orderedSet = rosfi(m, min, max);
+      equal(orderedSet.length, m);
+
+      // Limits test
+      for (i = 0; i < m; i += 1) {
+        ok(orderedSet[i] >= min && orderedSet[i] < max);
+      }
+
+      // Form distribution
+      for (i = 0; i < n; i += 1) {
+        orderedSet = rosfi(m, min, max);
+        for (j = 0; j < m; j += 1) {
+          x = orderedSet[j];
+          dist[Math.floor(x)] += 1;
+        }
+      }
+
+      // Test uniformity
+      for (i = 0; i < m; i += 1) {
+        ok(dist[i] > 0.8 * n && dist[i] < 1.2 * n, 'Interval ' + i +
+          ' should be near ' + n + ' and is ' + dist[i] +
+          '. May fail rarely.');
+      }
+    });
+
+    
+  </script>
+</body>
+</html>

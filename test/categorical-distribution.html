@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>QUnit test suite</title>
+  <link rel="stylesheet" href="lib/qunit-1.13.0.css">
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <script src="lib/qunit-1.13.0.js"></script>
+  <script src="../categorical-distribution.js"></script>
+  <script type="text/javascript">
+    
+    var unit = CategoricalDistribution;
+
+    var epsilon = 0.00001; // for floating point comparison
+
+    var sum = function (array) {
+      var result = 0;
+      for (var i = 0; i < array.length; i += 1) { result += array[i]; }
+      return result;
+    };
+
+
+    test('initial state', function testCase() {
+      var u = unit.create();
+      ok(u.head().length === 0);
+    });
+    
+    test('learn & head & prob', function testCase() {
+      var u = unit.create();
+      u.learn(['a']);
+      u.learn(['b']);
+      ok(u.head(1).length === 1);
+      var p = u.prob(['a'])[0];
+      ok(p > 0.5 - epsilon);
+      ok(p < 0.5 + epsilon);
+    });
+
+    test('learn array & peak', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
+      // P(a) = 0.5
+      // P(b) = 0.3
+      // P(c) = 0.2
+
+      // tolerance 0.2 => min prob 0.5 - 0.5 * 0.2 = 0.4
+      deepEqual(u.peak(0.2), ['a']);
+      // tolerance 0.5 => min prob 0.5 - 0.5 * 0.5 = 0.25
+      deepEqual(u.peak(0.5), ['a', 'b']);
+      // tolerance 0.8 => min prob 0.5 - 0.5 * 0.8 = 0.1
+      deepEqual(u.peak(0.8), ['a', 'b', 'c']);
+
+      // Zero tolerance
+      deepEqual(u.peak(0), ['a']);
+    });
+
+    test('subset & peak', function testCase() {
+
+      var u = unit.create();
+      u.learn(['a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'd']);
+      // P(a) = 0.4
+      // P(b) = 0.3
+      // P(c) = 0.2
+      // P(d) = 0.1
+
+      // min prob 0.15
+      deepEqual(u.subset(['b', 'd']).peak(0.5), ['b']);
+      // min prob 0.15
+      deepEqual(u.subset(['b', 'c', 'd']).peak(0.5), ['b', 'c']);
+      // min prob 0.08
+      deepEqual(u.subset(['a', 'd']).peak(0.8), ['a', 'd']);
+
+      // Zero tolerance
+      deepEqual(u.subset(['b', 'd']).peak(0), ['b']);
+    });
+
+    test('rank & unlearn', function testCase() {
+      var u = unit.create();
+
+      u.learn(['a', 'a', 'b']);
+      deepEqual(u.rank(['a', 'b']), [0, 1]);
+      
+      u.learn(['b']);
+      u.unlearn(['a']);
+      deepEqual(u.rank(['a', 'b']), [1, 0]);
+    });
+
+    test('sample', function testCase() {
+      // Non-deterministic test!!!
+      // = May fail sometimes
+      var u = unit.create();
+      u.learn(['a', 'b']);
+
+      var i, s,
+          na = 0, nb = 0,
+          take = u.sample(10000);
+      for (i = 0; i < take.length; i += 1) {
+        s = take[i];
+        if (s === 'a') {
+          na += 1;
+        } else if (s === 'b') {
+          nb += 1;
+        }
+      }
+
+      equal(na + nb, 10000);
+      ok(na > 4500, 'Fails sometimes but very rarely.');
+      ok(nb > 4500, 'Fails sometimes but very rarely.');
+    });
+
+    test('sample, ordered', function testCase() {
+      // Non-deterministic test!!!
+      // = May fail sometimes
+      var u = unit.create();
+      u.learn(['a', 'a', 'b']);
+
+      var i, s,
+          na = 0, nb = 0,
+          take = u.sample(1000, true);
+
+      // a's first
+      for (i = 0; i < take.length; i += 1) {
+        s = take[i];
+        if (s === 'a') {
+          na += 1;
+        } else {
+          break;
+        }
+      }
+      equal(i, na);
+
+      // b's second
+      for (; i < take.length; i += 1) {
+        s = take[i];
+        if (s === 'b') {
+          nb += 1;
+        } else {
+          break;
+        }
+      }
+
+      equal(na + nb, 1000);
+      ok(na > nb + 100, 'Fails sometimes but very rarely.');
+    });
+
+    test('dumb & load', function testCase() {
+      var u  = unit.create();
+      var u2 = unit.create();
+      u.learn(['a', 'a', 'b']);
+
+      var dumped = u.dump();
+      u2.load(dumped);
+      
+      deepEqual(u2.dump(), dumped);
+      deepEqual(u2.head(), u.head());
+      deepEqual(u2.rank(['a', 'b']), [0, 1]);
+    });
+
+    test('copy', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'b']);
+      var u2 = u.copy();
+      deepEqual(u2.rank(['a', 'b']), [1, 0]);
+    });
+
+    test('size', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'a', 'b']);
+      equal(u.size(), 3);
+    });
+
+    test('numCategories', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'b']);
+      equal(u.numCategories(), 2);
+    });
+
+    test('chaining', function testCase() {
+      var u = unit.create(4).learn(['a','b','a']);
+      var p = u.subset(['a']).learn(['b']).prob('a');
+      ok(p > 2/3 - epsilon);
+      ok(p < 2/3 + epsilon);
+    });
+
+
+
+    // Adaptation tests
+
+    test('size 1', function testCase() {
+      var u, p;
+      u = unit.create(1);
+      u.learn(['a', 'b']);
+      equal(u.numCategories(), 1, 'Should be only one category.');
+      p = u.prob(['b'])[0];
+      equal(p, 1);
+    });
+
+    test('size 2', function testCase() {
+      // Non-deterministic test!!!
+      // = May fail sometimes
+      var u = unit.create(2);
+      u.learn(['a', 'b']);
+      u.learn(['c']); // removes a or b
+      equal(u.numCategories(), 2);
+
+      u.learn(['a','b','a','b','a','b','a','b']); // probably removes c
+      var p = sum(u.prob(['a', 'b']));
+      ok(p > 1.0 - epsilon, 'Non-deterministic. May fail rarely.');
+      ok(p < 1.0 + epsilon, 'Non-deterministic. May fail rarely.');
+      equal(u.prob(['c'])[0], 0, 'Non-deterministic. May fail rarely.');
+    });
+
+    test('maxSize', function testCase() {
+      var u = unit.create(10);
+      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
+      equal(u.maxSize(), 10);
+
+      u.maxSize(1);
+      equal(u.numCategories(), 1);
+    });
+
+    test('maxSize from zero', function testCase() {
+      var u = unit.create(0);
+      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
+      u.maxSize(1);
+      equal(u.numCategories(), 1);
+    });
+    
+  </script>
+</body>
+</html>
