@@ -2,6 +2,7 @@
 
 Categorical distribution. Compatible with browsers and Node.js.
 
+![Categorical distribution](../master/doc/categorical-distribution-logo-220.png?raw=true)
 
 ## Basic example
 
