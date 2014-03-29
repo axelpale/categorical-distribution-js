@@ -2,7 +2,7 @@
 
 CategoricalDistribution models a categorical distribution of a sequence of events. Events are represented by the names of their categories. For example an event of being blue could belong to the category 'blue'.
 
-![Example distribution](../master/doc/example-distribution-160.png?raw=true)
+![Example distribution](../master/doc/example-distribution-180.png?raw=true)
 
 Distribution is taught by `.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image above. After this the probabilities of events can be found by `.prob(['red', 'blue', 'yellow'])`, now returning an array `[0.5, 0.25, 0]`.
 
