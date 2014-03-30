@@ -1,8 +1,8 @@
 # categorical-distribution.js<sup>v1.0.0</sup>
 
-CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and tell or _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also how probable it is. The more you teach the distribution, the more accurate the predictions become.
+CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
-An event is represented by the name of its category. For example the _event_ of a marble being blue belongs to the category 'blue'. Therefore when we refer to this event by writing the string 'blue'.
+An _event_ is represented by the name of its category. For example a event of a marble being blue belongs to the category 'blue'. Therefore when we refer to this event by writing the string 'blue'.
 
 Create a new distribution by `var d = CategoricalDistribution.create()`. Teach events to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
 
