@@ -1,23 +1,30 @@
 # categorical-distribution.js<sup>v1.0.0</sup>
 
-CategoricalDistribution models a categorical distribution of a sequence of events. Events are represented by the names of their categories. For example an event of being blue could belong to the category 'blue'.
+CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and tell or _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also how probable it is. The more you teach the distribution, the more accurate the predictions become.
+
+An event is represented by the name of its category. For example the _event_ of a marble being blue belongs to the category 'blue'. Therefore when we refer to this event by writing the string 'blue'.
+
+Create a new distribution by `var d = CategoricalDistribution.create()`. Teach the events to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
 
 ![Example distribution](../master/doc/example-distribution-180.png?raw=true)
 
-Distribution is taught by `.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image above. After this the probabilities of events can be found by `.prob(['red', 'blue', 'yellow'])`, now returning an array `[0.5, 0.25, 0]`.
+After this you can find the probabilities of events by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable events can be found by `d.head(2)`, returning `['red', 'blue']`, or by `d.peak(0.2)`, returning only `['red']` because probability of 'blue' is over 20 % smaller than 'red'. Positions of events in the list of the most probable events can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]`.
 
-The most probable events can be found by `.head(2)`, returning `['red', 'blue']`, or by `.peak(0.2)`, returning only `['red']` because probability of 'blue' is over 20 % smaller than 'red'. Positions of events in the list of the most probable events can be found by `.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]`.
+To replay the learned distribution, samples can be taken by `d.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `d.copy()` or cut by `d.subset(['blue', 'green'])` to allow further modifications without altering the original one.
 
-To replay the learned distribution, samples can be taken by `.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `.copy()` or cut by `.subset(['blue', 'green'])` to allow further modifications without altering the original one.
-
-To store or send the distribution, it can be serialized to an array by `.dump()` and read back by `.load(dumpedArray)`.
+To store or send the distribution, it can be serialized to an array by `d.dump()` and read back by `d.load(dumpedArray)`.
 
 Compatible with browsers and Node.js.
 
 
 ## Basic example
 
-    > var d = CategoricalDistribution.create();
+    > var d = CategoricalDistribution.create()
+    > d.learn(['like', 'like', 'dislike', 'like'])
+    > d.prob(['like'])
+    [0.75]
+    > d.sample(3)
+    ['dislike', 'like', 'like']
 
 ## Install
 
@@ -29,10 +36,10 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
 ### CategoricalDistribution.create(size?)
 
-    > var d = CategoricalDistribution.create();
+    > var d = CategoricalDistribution.create()
 
 To base probabilities on approximately 20 previous events
-    > var e = CategoricalDistribution.create(20);
+    > var e = CategoricalDistribution.create(20)
 
 ### d.learn(events)
 
@@ -46,11 +53,15 @@ To base probabilities on approximately 20 previous events
 
 ### d.rank(events)
 
+Index of the events in the list of most probable events. Most probable event has the rank 0.
+
 ### d.sample(n, isOrdered?)
 
 ### d.size()
 
 ### d.numCategories()
+
+Number of different events in the distribution. If maxSize is set then some of the taught categories may have been forgotten.
 
 ### d.maxSize(newMaxSize?)
 
@@ -60,13 +71,13 @@ To base probabilities on approximately 20 previous events
 
 ### d.dump()
 
-    > d.dump();
+    > d.dump()
 
 Exports the state of the distribution for example to be stored to database. See [_d.load()_](#dload).
 
 ### d.load()
 
-    > d.load(...);
+    > d.load(...)
     undefined
 
 Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
