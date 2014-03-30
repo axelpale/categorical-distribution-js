@@ -4,7 +4,7 @@ CategoricalDistribution models a categorical distribution of a sequence of event
 
 An event is represented by the name of its category. For example the _event_ of a marble being blue belongs to the category 'blue'. Therefore when we refer to this event by writing the string 'blue'.
 
-Create a new distribution by `var d = CategoricalDistribution.create()`. Teach the events to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
+Create a new distribution by `var d = CategoricalDistribution.create()`. Teach events to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
 
 ![Example distribution](../master/doc/example-distribution-180.png?raw=true)
 
@@ -28,7 +28,7 @@ Compatible with browsers and Node.js.
 
 ## Install
 
-Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
+(not yet working) Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
 
 Browsers: download and `<script src="categorical-distribution.js"></script>`
 
@@ -84,6 +84,8 @@ Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
 
 
 ## Customize CategoricalDistribution
+
+(not yet working)
 
 Customize CategoricalDistribution instance by:
 
