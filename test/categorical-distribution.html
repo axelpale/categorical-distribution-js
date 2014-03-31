@@ -206,6 +206,12 @@
       ok(na > nb + 100, 'Fails sometimes but very rarely.');
     });
 
+    test('sample size zero', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'a', 'b']);
+      deepEqual(u.sample(0), []);
+    });
+
     test('dumb & load', function testCase() {
       var u  = unit.create();
       var u2 = unit.create();
