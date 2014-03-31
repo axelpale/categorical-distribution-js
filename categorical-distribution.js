@@ -1,4 +1,4 @@
-/*! categorical-distribution - v1.0.0 - 2014-03-31
+/*! categorical-distribution - v1.1.0 - 2014-03-31
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -774,7 +774,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Version
-  myModule.version = '1.0.0';
+  myModule.version = '1.1.0';
 
 
   // Make utils visible outside
