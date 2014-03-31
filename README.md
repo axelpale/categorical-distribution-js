@@ -66,7 +66,7 @@ The following three blocks produce equal results
 
 Forget that these events happened. Do not forget the whole category.
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> d.unlearn(['red', 'blue'])
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.5, 0]
@@ -75,7 +75,7 @@ Forget that these events happened. Do not forget the whole category.
 
 Probabilities of events. If parameter is omitted return probabilities of all events in the probability order. 
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> d.prob(['red', 'green'])
     [0.5, 0.25]
     >> d.prob()
@@ -85,7 +85,7 @@ Probabilities of events. If parameter is omitted return probabilities of all eve
 
 N most probable categories ordered by their probability. If n is omitted or zero, return all the categories.
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> d.head()
     ['red', 'green', 'blue']
     >> d.head(0)
@@ -93,7 +93,21 @@ N most probable categories ordered by their probability. If n is omitted or zero
     >> d.head(1)
     ['red']
 
-### d.peak(deviationTolerance)
+### d.peak(tolerance)
+
+List the most probable category and the categories whose probability differs from it at most by tolerance * 100 percent. Tolerance 1 will list all the categories. The list is ordered by the probability.
+
+    // red 5, blue 3, green 2
+    >> d.prob(['red', 'blue', 'green'])
+    [0.5, 0.3, 0.2]
+    >> d.peak(0)
+    ['red']
+    >> d.peak(0.3)
+    ['red']
+    >> d.peak(0.5)
+    ['red', 'blue']
+    >> d.peak(0.6)
+    ['red', 'blue', 'green']
 
 ### d.rank(events)
 
