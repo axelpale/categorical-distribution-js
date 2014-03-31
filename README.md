@@ -38,7 +38,7 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
     >> var d = CategoricalDistribution.create()
 
-To only remember the distribution of approximately 20 previous events
+To only remember the distribution of approximately 20 previous events:
 
     >> var e = CategoricalDistribution.create(20)
 
@@ -56,14 +56,10 @@ The order of the events matters only if the memory size is exceeded. A randomize
 The following three blocks produce equal results
 
     >> d.learn(['red', 'blue', 'red', 'green'])
-
-    (equivalent to)
-
+    ----
     >> d.learn(['red', 'blue'])
     >> d.learn(['red', 'green'])
-
-    (equivalent to)
-
+    ----
     >> d.learn(['red', 'blue']).learn(['red', 'green'])
 
 ### d.unlearn(events)
@@ -210,6 +206,7 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 ## TODO
 
 - maxSize to memorySize
+- in docs, write out the distribution instead of referring to d.learn
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods
