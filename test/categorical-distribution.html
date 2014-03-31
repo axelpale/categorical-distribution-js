@@ -57,7 +57,7 @@
       });
     });
 
-    test('learn array & peak', function testCase() {
+    test('peak', function testCase() {
       var u = unit.create();
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
       // P(a) = 0.5
@@ -73,6 +73,14 @@
 
       // Zero tolerance
       deepEqual(u.peak(0), ['a']);
+    });
+
+    test('peak out of range', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
+
+      deepEqual(u.peak(-0.2), u.peak(0));
+      deepEqual(u.peak(1.3), u.peak(1));
     });
 
     test('subset & peak', function testCase() {
