@@ -38,6 +38,25 @@
       ok(p < 0.5 + epsilon);
     });
 
+    test('head, prob & rank without params', function testCase() {
+      var u = unit.create().learn(['red', 'green']);
+      deepEqual(u.head(), ['green', 'red']);
+      deepEqual(u.rank(), [0, 1]);
+      deepEqual(u.prob(), [0.5, 0.5]);
+    });
+
+    test('prob & rank with one string param', function testCase() {
+      // Strings are dangerous because they behave so similar to arrays.
+      // E.g. 'foo'[0] === 'f'. That the reason why to throw an exception.
+      var u = unit.create().learn(['a', 'b']);
+      throws(function () {
+        u.prob('a');
+      });
+      throws(function () {
+        u.rank('a');
+      });
+    });
+
     test('learn array & peak', function testCase() {
       var u = unit.create();
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
@@ -85,6 +104,40 @@
       u.learn(['b']);
       u.unlearn(['a']);
       deepEqual(u.rank(['a', 'b']), [1, 0]);
+    });
+
+    test('each', function testCase() {
+      var u = unit.create();
+      var numCategories = 0;
+      u.learn(['a', 'a', 'b']);
+      u.each(function (cat, prob, rank) {
+        equal(u.prob([cat])[0], prob);
+        equal(u.rank([cat])[0], rank);
+        numCategories += 1;
+      });
+      equal(numCategories, u.numCategories());
+    });
+
+    test('each with context', function testCase() {
+      var u = unit.create();
+      var ctx = {foo: 'bar'};
+      u.learn(['a', 'a', 'b']);
+      u.each(function (cat, prob, rank) {
+        equal(this.foo, 'bar');
+      }, ctx);
+    });
+
+    test('map', function testCase() {
+      var u = unit.create();
+      var numCategories = 0;
+      u.learn(['a', 'a', 'b']);
+      var head = u.map(function (cat, prob, rank) {
+        equal(u.prob([cat])[0], prob);
+        equal(u.rank([cat])[0], rank);
+        return cat;
+      });
+      deepEqual(head, u.head());
+      equal(head.length, u.numCategories());
     });
 
     test('sample', function testCase() {
@@ -178,10 +231,15 @@
     });
 
     test('chaining', function testCase() {
-      var u = unit.create(4).learn(['a','b','a']);
-      var p = u.subset(['a']).learn(['b']).prob('a');
+      var u = unit.create(4).learn(['aa','bb','aa']);
+      var p = u.subset(['aa']).learn(['bb']).prob(['aa']);
       ok(p > 2/3 - epsilon);
       ok(p < 2/3 + epsilon);
+      
+      p = u.each(function (cat) {
+        u.unlearn([cat]);
+      }).prob(['aa']);
+      equal(p, 1);
     });
 
 

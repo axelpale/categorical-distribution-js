@@ -1,4 +1,4 @@
-/*! categorical-distribution - v1.0.0 - 2014-03-28
+/*! categorical-distribution - v1.0.0 - 2014-03-31
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -309,7 +309,16 @@ myModule.CategoricalDistribution = (function () {
     return result;
   };
 
+
+
+  // Exceptions
+
+  var NotAnArrayException = {
+    name: 'NotAnArrayException',
+    message: 'Parameter is required to be an array'
+  };
   
+
 
   // Constructor
 
@@ -345,12 +354,19 @@ myModule.CategoricalDistribution = (function () {
     // Return array of numbers.
 
     var result = [],
-        i, ev, p;
+        i, ev, p,
+        s = this.state;
+
+    if (typeof events === 'string') {
+      throw NotAnArrayException;
+    } else if (typeof events === 'undefined') {
+      events = s.order;
+    }
  
     for (i = 0; i < events.length; i += 1) {
       ev = events[i];
-      if (this.state.counters.hasOwnProperty(ev)) {
-        p = this.state.counters[ev] / this.state.countersSum;
+      if (s.counters.hasOwnProperty(ev)) {
+        p = s.counters[ev] / s.countersSum;
         result.push(p);
       } else {
         result.push(0);
@@ -463,6 +479,12 @@ myModule.CategoricalDistribution = (function () {
     var result = [],
         i, ev, p,
         s = this.state;
+
+    if (typeof events === 'string') {
+      throw NotAnArrayException;
+    } else if (typeof events === 'undefined') {
+      events = s.order; // stupid because result is [0, 1, 2, ...]
+    }
  
     for (i = 0; i < events.length; i += 1) {
       ev = events[i];
@@ -474,6 +496,52 @@ myModule.CategoricalDistribution = (function () {
     }
 
     return result;
+  };
+
+  ACD.prototype.each = function (iterator, context) {
+    // Execute function over all categories in probability order.
+    // 
+    // Parameter
+    //   Iterator
+    //     A function.
+    //   context (optional)
+    //     Call the iterator in this context.
+    // 
+    // Iterator
+    //   iterator(category, probability, rank)
+    // 
+    // Return this for chaining.
+    var i, cat, prob, index,
+        s = this.state;
+    var len = s.order.length;
+    for (i = 0; i < len; i += 1) {
+      cat = s.order[i];
+      prob = s.counters[cat] / s.countersSum;
+      index = s.indices[cat];
+      iterator.call(context, cat, prob, index);
+    }
+    return this;
+  };
+
+  ACD.prototype.map = function (iterator, context) {
+    // Transform categories to an array. Iterator defines how the categories
+    // are transformed and is called in probability order.
+    // 
+    // Parameter
+    //   Iterator
+    //     A function. Should return something.
+    //   context (optional)
+    //     Call the iterator in this context.
+    // 
+    // Iterator
+    //   iterator(category, probability, rank)
+    // 
+    // Return this for chaining.
+    var results = [];
+    this.each(function (cat, prob, rank) {
+      results.push(iterator.call(context, cat, prob, rank));
+    });
+    return results;
   };
 
   ACD.prototype.sample = function (n, isOrdered) {

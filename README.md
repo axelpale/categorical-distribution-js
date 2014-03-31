@@ -19,11 +19,11 @@ Compatible with browsers and Node.js.
 
 ## Basic example
 
-    > var d = CategoricalDistribution.create()
-    > d.learn(['like', 'like', 'dislike', 'like'])
-    > d.prob(['like'])
+    >> var d = CategoricalDistribution.create()
+    >> d.learn(['like', 'like', 'dislike', 'like'])
+    >> d.prob(['like'])
     [0.75]
-    > d.sample(3)
+    >> d.sample(3)
     ['dislike', 'like', 'like']
 
 ## Install
@@ -34,20 +34,48 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
 ## API
 
-### CategoricalDistribution.create(size?)
+### CategoricalDistribution.create([size])
 
-    > var d = CategoricalDistribution.create()
+    >> var d = CategoricalDistribution.create()
 
-To base probabilities on approximately 20 previous events
-    > var e = CategoricalDistribution.create(20)
+To remember only approximately 20 previous events
+    >> var e = CategoricalDistribution.create(20)
 
 ### d.learn(events)
 
+    >> var d = CategoricalDistribution.create()
+    >> d.learn(['red', 'blue', 'red', 'green'])
+    >> d.prob(['red', 'green', 'blue'])
+    [0.5, 0.25, 0.25]
+
 ### d.unlearn(events)
 
-### d.prob(events)
+Forget that these events happened. Does not forget the whole category.
 
-### d.head(n)
+    (continues from d.learn)
+    >> d.unlearn(['red', 'blue'])
+    >> d.prob(['red', 'green', 'blue'])
+    [0.5, 0.5, 0]
+
+### d.prob([events])
+
+    (continues from d.learn)
+    >> d.prob(['red', 'green'])
+    [0.5, 0.25]
+    >> d.prob()
+    [0.5, 0.25, 0.25]
+
+### d.head([n])
+
+N most probable categories ordered by their probability. If n is omitted or zero, return all the categories.
+
+    (continues from d.learn)
+    >> d.head()
+    ['red', 'green', 'blue']
+    >> d.head(0)
+    ['red', 'green', 'blue']
+    >> d.head(1)
+    ['red']
 
 ### d.peak(deviationTolerance)
 
@@ -55,7 +83,31 @@ To base probabilities on approximately 20 previous events
 
 Index of the events in the list of most probable events. Most probable event has the rank 0.
 
-### d.sample(n, isOrdered?)
+### d.each(iterator, [context])
+
+Call an iterator function once for each category in their probability order. [Chainable](#chaining).
+
+    >> var probs = {};
+    >> d.each(function (category, probability, rank) {
+         probs[category] = probability;
+       });
+    >> probs
+    {
+      blue: 0.25,
+      green: 0.25,
+      red: 0.5
+    }
+
+### d.map(iterator, [context])
+
+Call an iterator function once for each category in their probability order. Return an array of the returned values of the iterator.
+
+    >> d.map(function (category, probability, rank) {
+         return category;
+       });
+    ['red', 'blue', 'green']
+
+### d.sample(n, [isOrdered])
 
 ### d.size()
 
@@ -63,7 +115,7 @@ Index of the events in the list of most probable events. Most probable event has
 
 Number of different events in the distribution. If maxSize is set then some of the taught categories may have been forgotten.
 
-### d.maxSize(newMaxSize?)
+### d.maxSize([newMaxSize])
 
 ### d.copy()
 
@@ -71,16 +123,25 @@ Number of different events in the distribution. If maxSize is set then some of t
 
 ### d.dump()
 
-    > d.dump()
+    >> d.dump()
 
 Exports the state of the distribution for example to be stored to database. See [_d.load()_](#dload).
 
 ### d.load()
 
-    > d.load(...)
+    >> d.load(...)
     undefined
 
 Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
+
+
+## Chaining
+
+Most of the fuctions that do not return anything else are chainable.
+
+    >> var d = CategoricalDistribution.create().learn(['red', 'green', 'blue'])
+    >> d.subset(['green', 'blue']).prob()
+    [0.5, 0.5]
 
 
 ## Customize CategoricalDistribution
@@ -96,7 +157,9 @@ After that you can:
     var d = CategoricalDistribution.create();
     d.myFunction();
 
+
 ## Under the hood
+
 
 ## History
 
@@ -105,11 +168,13 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 ## TODO
 
 - maxSize to memorySize
-- each, map
+- test subset and others with duplicate categories
+- test empty parameters
+- reorder methods
 - example application
 - API documentation
 - Under the hood
-- Customization
+- Customization feature + tests
 - Release to NPM
 
 ## License
