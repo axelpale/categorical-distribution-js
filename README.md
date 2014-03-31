@@ -34,23 +34,41 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
 ## API
 
-### CategoricalDistribution.create([size])
+### CategoricalDistribution.create([memorySize])
 
     >> var d = CategoricalDistribution.create()
 
-To remember only approximately 20 previous events
+To only remember the distribution of approximately 20 previous events
+
     >> var e = CategoricalDistribution.create(20)
 
 ### d.learn(events)
+
+Learn the distribution from these events.
 
     >> var d = CategoricalDistribution.create()
     >> d.learn(['red', 'blue', 'red', 'green'])
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.25, 0.25]
 
+The order of the events matters only if the memory size is exceeded. A randomized forgetting algorithm is applied to cope with the memory size limit. See [Under the hood](#under-the-hood) for details.
+
+The following three blocks produce equal results
+
+    >> d.learn(['red', 'blue', 'red', 'green'])
+
+    (equivalent to)
+
+    >> d.learn(['red', 'blue'])
+    >> d.learn(['red', 'green'])
+
+    (equivalent to)
+
+    >> d.learn(['red', 'blue']).learn(['red', 'green'])
+
 ### d.unlearn(events)
 
-Forget that these events happened. Does not forget the whole category.
+Forget that these events happened. Do not forget the whole category.
 
     (continues from d.learn)
     >> d.unlearn(['red', 'blue'])
@@ -58,6 +76,8 @@ Forget that these events happened. Does not forget the whole category.
     [0.5, 0.5, 0]
 
 ### d.prob([events])
+
+Probabilities of events. If parameter is omitted return probabilities of all events in the probability order. 
 
     (continues from d.learn)
     >> d.prob(['red', 'green'])
@@ -81,12 +101,17 @@ N most probable categories ordered by their probability. If n is omitted or zero
 
 ### d.rank(events)
 
-Index of the events in the list of most probable events. Most probable event has the rank 0.
+Indices of the events in the list of most probable events. Most probable event has the rank 0. If two events have same probability the more recent one will have a ranking closer to the top. Events with zero probability have rank Infinity.
+
+    (continues from d.learn)
+    >> d.rank(['red', 'blue', 'yellow'])
+    [0, 2, Infinity]
 
 ### d.each(iterator, [context])
 
 Call an iterator function once for each category in their probability order. [Chainable](#chaining).
 
+    (continues from d.learn)
     >> var probs = {};
     >> d.each(function (category, probability, rank) {
          probs[category] = probability;
@@ -111,9 +136,26 @@ Call an iterator function once for each category in their probability order. Ret
 
 ### d.size()
 
+Number of events that form the distribution. Also a number of events in memory even though the exact events are not memorized.
+
+    >> var d = CategoricalDistribution.create(3)
+    >> d.learn(['red', 'blue'])
+    >> d.size()
+    2
+    >> d.learn(['red', 'blue'])
+    >> d.size()
+    3
+
 ### d.numCategories()
 
 Number of different events in the distribution. If maxSize is set then some of the taught categories may have been forgotten.
+
+    (continues from d.learn)
+    >> d.numCategories()
+    3    // red, green, blue
+    >> d.unlearn('red', 'green')
+    >> d.numCategories()
+    2    // red, blue
 
 ### d.maxSize([newMaxSize])
 
