@@ -26,13 +26,17 @@ Compatible with browsers and Node.js.
     >> d.sample(3)
     ['dislike', 'like', 'like']
 
+
 ## Install
 
 (not yet working) Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
 
 Browsers: download and `<script src="categorical-distribution.js"></script>`
 
+
+
 ## API
+
 
 ### CategoricalDistribution.create([memorySize])
 
@@ -41,6 +45,7 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 To only remember the distribution of approximately 20 previous events:
 
     >> var e = CategoricalDistribution.create(20)
+
 
 ### d.learn(events)
 
@@ -62,6 +67,7 @@ The following three blocks produce equal results
     ----
     >> d.learn(['red', 'blue']).learn(['red', 'green'])
 
+
 ### d.unlearn(events)
 
 Forget that these events happened. Do not forget the whole category.
@@ -70,6 +76,7 @@ Forget that these events happened. Do not forget the whole category.
     >> d.unlearn(['red', 'blue'])
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.5, 0]
+
 
 ### d.prob([events])
 
@@ -80,6 +87,7 @@ Probabilities of events. If parameter is omitted return probabilities of all eve
     [0.5, 0.25]
     >> d.prob()
     [0.5, 0.25, 0.25]
+
 
 ### d.head([n])
 
@@ -92,6 +100,7 @@ N most probable categories ordered by their probability. If n is omitted or zero
     ['red', 'green', 'blue']
     >> d.head(1)
     ['red']
+
 
 ### d.peak(tolerance)
 
@@ -109,19 +118,21 @@ List the most probable category and the categories whose probability differs fro
     >> d.peak(0.6)
     ['red', 'blue', 'green']
 
+
 ### d.rank(events)
 
 Indices of the events in the list of most probable events. Most probable event has the rank 0. If two events have same probability the more recent one will have a ranking closer to the top. Events with zero probability have rank Infinity.
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> d.rank(['red', 'blue', 'yellow'])
     [0, 2, Infinity]
+
 
 ### d.each(iterator, [context])
 
 Call an iterator function once for each category in their probability order. [Chainable](#chaining).
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> var probs = {};
     >> d.each(function (category, probability, rank) {
          probs[category] = probability;
@@ -133,16 +144,32 @@ Call an iterator function once for each category in their probability order. [Ch
       red: 0.5
     }
 
+
 ### d.map(iterator, [context])
 
-Call an iterator function once for each category in their probability order. Return an array of the returned values of the iterator.
+Call an iterator function once for each category in their probability order. Return an array of the values returned by the iterator.
 
+    // red 2, blue 1, green 1
     >> d.map(function (category, probability, rank) {
          return category;
        });
     ['red', 'blue', 'green']
 
+
 ### d.sample(n, [isOrdered])
+
+Draw n samples randomly from the distribution. If isOrdered is true (false if omitted) the results are ordered most probable samples first. This ordering is done without any additional computational penalty. See the source for details.
+
+    // red 2, blue 1, green 1
+    >> d.sample(3)
+    ['blue', 'red', 'red']
+    >> d.sample(3, true)
+    ['red', 'red', 'green']
+    >> d.sample(1)
+    ['green']
+    >> d.sample(0)
+    []
+
 
 ### d.size()
 
@@ -156,49 +183,101 @@ Number of events that form the distribution. Also a number of events in memory e
     >> d.size()
     3
 
+
 ### d.numCategories()
 
 Number of different events in the distribution. If maxSize is set then some of the taught categories may have been forgotten.
 
-    (continues from d.learn)
+    // red 2, blue 1, green 1
     >> d.numCategories()
     3    // red, green, blue
     >> d.unlearn('red', 'green')
     >> d.numCategories()
     2    // red, blue
 
+
 ### d.maxSize([newMaxSize])
+
+Get or set the maximum number of events to be memorized. The order of the events is not remembered but their distribution is. Set to zero for unlimited memory.
+
+    >> var d = CategoricalDistribution.create()
+    >> d.maxSize()
+    0
+
+    >> var c = CategoricalDistribution.create(3)
+    >> d.maxSize()
+    3
+
+If the memory size is exceeded the old events are forgotten. This also happens if a new maximum memory size is smaller than the current size. See [Under the hood](#under-the-hood) for detail.
+
 
 ### d.copy()
 
+Duplicate the distribution. Modifications to the duplicate do not alter the original.
+
+    // red 2, blue 1, green 1
+    >> var c = d.copy()
+    >> c.learn(['blue', 'blue'])
+    >> d.head()
+    ['red', 'green', 'blue']
+    >> c.head()
+    ['blue', 'red', 'green']
+
+
 ### d.subset(categories)
+
+Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but their common ratios stay the same.
+
+    // red 2, blue 1, green 1
+    >> var c = d.subset(['red', 'blue'])
+    >> d.print()
+    red   0.50
+    green 0.25
+    blue  0.25
+    >> c.print()
+    red  0.67
+    blue 0.33
+
 
 ### d.dump()
 
-    >> d.dump()
+Serialize the state of the distribution to an array for example to be stored to database. See [_d.load()_](#dload).
 
-Exports the state of the distribution for example to be stored to database. See [_d.load()_](#dload).
+    >> d.dump()
+    [...]
+
 
 ### d.load()
+
+Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
 
     >> d.load(...)
     undefined
 
-Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
+
+### _future_ d.print([precision])
+    
+    // red 4, blue 1, green 1
+    >> d.print()
+    red   0.67
+    green 0.17
+    blue  0.17
+    >> d.print(4)
+    red   0.6667
+    green 0.1667
+    blue  0.1667
 
 
 ## Chaining
 
-Most of the fuctions that do not return anything else are chainable.
+Most of the functions that do not return anything else are chainable.
 
     >> var d = CategoricalDistribution.create().learn(['red', 'green', 'blue'])
     >> d.subset(['green', 'blue']).prob()
     [0.5, 0.5]
 
 
-## Customize CategoricalDistribution
-
-(not yet working)
+## _future_ Customize CategoricalDistribution
 
 Customize CategoricalDistribution instance by:
 
@@ -217,10 +296,13 @@ After that you can:
 
 The development of categorical-distribution.js started in 2013 as a part of experimental Objectron module and separated to its own module in early 2014. Objectron module is related to such concepts as n-gram, bayesian networks and Markov models especially from a point of view of intelligent user interfaces.
 
+
 ## TODO
 
 - maxSize to memorySize
+- memorySize to Infinity. What about zero?
 - in docs, write out the distribution instead of referring to d.learn
+- d.print()
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods
@@ -229,6 +311,7 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - Under the hood
 - Customization feature + tests
 - Release to NPM
+
 
 ## License
 
