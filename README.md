@@ -98,11 +98,19 @@ After that you can:
 
 ## Under the hood
 
-
-
 ## History
 
 The development of categorical-distribution.js started in 2013 as a part of experimental Objectron module and separated to its own module in early 2014. Objectron module is related to such concepts as n-gram, bayesian networks and Markov models especially from a point of view of intelligent user interfaces.
+
+## TODO
+
+- maxSize to memorySize
+- each, map
+- example application
+- API documentation
+- Under the hood
+- Customization
+- Release to NPM
 
 ## License
 
