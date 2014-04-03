@@ -249,23 +249,32 @@ Serialize the state of the distribution to an array for example to be stored to 
 
 ### d.load()
 
-Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
+Reset the distribution back to the dumped state. See [_d.dump()_](#ddump).
 
     >> d.load(...)
     undefined
 
 
 ### d.print([precision])
+
+Human readable representation of the distribution. Return a string.
     
     // red 4, blue 1, green 1
     >> d.print()
+    "red   0.67
+    green 0.17
+    blue  0.17
+    "
+    >> console.log(d.print())
     red   0.67
     green 0.17
     blue  0.17
+
     >> d.print(4)
-    red   0.6667
+    "red   0.6667
     green 0.1667
     blue  0.1667
+    "
 
 
 ## Chaining
