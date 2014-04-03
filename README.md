@@ -60,15 +60,16 @@ The order of the events matters only if the memory size is exceeded. A randomize
 
 The following three blocks produce equal results
 
-    >> d.learn(['red', 'blue', 'red', 'green'])
-
-
-    >> d.learn(['red', 'blue'])
-    >> d.learn(['red', 'green'])
-
-
-    >> d.learn(['red', 'blue']).learn(['red', 'green'])
-
+```
+>> d.learn(['red', 'blue', 'red', 'green'])
+```
+```
+>> d.learn(['red', 'blue'])
+>> d.learn(['red', 'green'])
+```
+```
+>> d.learn(['red', 'blue']).learn(['red', 'green'])
+```
 
 ### d.unlearn(events)
 
@@ -202,17 +203,19 @@ Number of different events in the distribution. If memorySize is limited then so
 
 Get or set the maximum number of events to be memorized. The order of the events is not remembered but their distribution is. Set to Infinity for unlimited memory.
 
-    >> var d = CategoricalDistribution.create()
-    >> d.memorySize()
-    Infinity
-
-
-    >> var c = CategoricalDistribution.create(3)
-    >> c.memorySize()
-    3
-    >> c.memorySize(Infinity)
-    >> c.memorySize()
-    Infinity
+```
+>> var d = CategoricalDistribution.create()
+>> d.memorySize()
+Infinity
+```
+```
+>> var c = CategoricalDistribution.create(3)
+>> c.memorySize()
+3
+>> c.memorySize(Infinity)
+>> c.memorySize()
+Infinity
+```
 
 If the new memory size is smaller than the current size (i.e. number of remembered events) then forget as many old events as is required to match the size with the memory size. See [Under the hood](#under-the-hood) for detail.
 
