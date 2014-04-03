@@ -17,6 +17,7 @@
     var epsilon = 0.00001; // for floating point comparison
 
     var sum = function (array) {
+      // Sum of the array
       var result = 0;
       for (var i = 0; i < array.length; i += 1) { result += array[i]; }
       return result;
@@ -212,19 +213,6 @@
       deepEqual(u.sample(0), []);
     });
 
-    test('dumb & load', function testCase() {
-      var u  = unit.create();
-      var u2 = unit.create();
-      u.learn(['a', 'a', 'b']);
-
-      var dumped = u.dump();
-      u2.load(dumped);
-      
-      deepEqual(u2.dump(), dumped);
-      deepEqual(u2.head(), u.head());
-      deepEqual(u2.rank(['a', 'b']), [0, 1]);
-    });
-
     test('copy', function testCase() {
       var u = unit.create();
       u.learn(['a', 'b']);
@@ -260,7 +248,50 @@
 
 
 
-    // Printing tests
+    // Dump and load
+
+    test('dumb & load', function testCase() {
+      var u  = unit.create();
+      var u2 = unit.create();
+      u.learn(['a', 'a', 'b']);
+
+      var dumped = u.dump();
+      u2.load(dumped);
+      
+      deepEqual(u2.dump(), dumped);
+      deepEqual(u2.head(), u.head());
+      deepEqual(u2.rank(['a', 'b']), [0, 1]);
+      equal(u.memorySize(), u2.memorySize());
+    });
+
+    test('dump & load via JSON', function testCase() {
+      // Tracks down possible incompability with JSON.
+      // For example Infinity is not supported.
+
+      var u, u2, u3;
+
+      u  = unit.create();
+      u2 = unit.create();
+      u.learn(['a', 'a', 'b']);
+      var strDump = JSON.stringify(u.dump());
+      u2.load(JSON.parse(strDump));
+
+      deepEqual(u.dump(), u2.dump());
+      deepEqual(u2.head(), u.head());
+      deepEqual(u2.rank(['a', 'b']), [0, 1]);
+      equal(u.memorySize(), u2.memorySize());
+
+      u3 = unit.create(2);
+      u3.learn(['a', 'a', 'b']);
+      var strDump = JSON.stringify(u3.dump());
+      u2.load(JSON.parse(strDump));
+      equal(u2.memorySize(), 2);
+    });
+
+
+
+
+    // Printing
 
     test('print', function testCase() {
       var u = unit.create().learn(['red','blue','blue']);
@@ -294,9 +325,16 @@
 
 
 
-    // Adaptation tests
+    // Adaptation and memorySize
 
-    test('size 1', function testCase() {
+    test('memorySize 0', function testCase() {
+      var u = unit.create(0);
+      u.learn(['a', 'b']);
+      equal(u.numCategories(), 0, 'Should be empty.');
+      deepEqual(u.prob(['a', 'b']), [0, 0]);
+    });
+
+    test('memorySize 1', function testCase() {
       var u, p;
       u = unit.create(1);
       u.learn(['a', 'b']);
@@ -305,7 +343,7 @@
       equal(p, 1);
     });
 
-    test('size 2', function testCase() {
+    test('memorySize 2', function testCase() {
       // Non-deterministic test!!!
       // = May fail sometimes
       var u = unit.create(2);
@@ -320,21 +358,32 @@
       equal(u.prob(['c'])[0], 0, 'Non-deterministic. May fail rarely.');
     });
 
-    test('maxSize', function testCase() {
+    test('memorySize negative', function testCase() {
+      // Same effect as zero
+      var u = unit.create(-1);
+      u.learn(['a', 'b']);
+      equal(u.memorySize(), 0);
+      deepEqual(u.prob(['a', 'b']), [0, 0]);
+    });
+
+    test('memorySize', function testCase() {
       var u = unit.create(10);
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
-      equal(u.maxSize(), 10);
+      equal(u.memorySize(), 10);
 
-      u.maxSize(1);
+      u.memorySize(1);
       equal(u.numCategories(), 1);
     });
 
-    test('maxSize from zero', function testCase() {
-      var u = unit.create(0);
+    test('memorySize reduction from default', function testCase() {
+      var u = unit.create();
+      equal(u.memorySize(), Infinity);
+
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
-      u.maxSize(1);
+      u.memorySize(1);
       equal(u.numCategories(), 1);
     });
+
     
   </script>
 </body>

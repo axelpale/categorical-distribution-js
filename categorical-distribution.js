@@ -1,4 +1,4 @@
-/*! categorical-distribution - v1.2.0 - 2014-04-03
+/*! categorical-distribution - v2.0.0 - 2014-04-03
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -179,6 +179,10 @@ myModule.CategoricalDistribution = (function () {
   var exports = {};
   /////////////////
 
+
+
+
+  // Private methods
   
   var sortOne = function (acd, category) {
     // Move event category to its position in a manner similar to
@@ -311,6 +315,9 @@ myModule.CategoricalDistribution = (function () {
 
 
 
+
+
+
   // Exceptions
 
   var NotAnArrayException = {
@@ -320,30 +327,35 @@ myModule.CategoricalDistribution = (function () {
   
 
 
+
+
+
   // Constructor
 
-  var ACD = function (maxSize) {
+  var ACD = function (memorySize) {
     // Parameter
-    //   maxSize (optional, default 0)
+    //   memorySize (optional, default Infinity)
     //     positive integer
-    //       0: unlimited size
-
-    // Normalize params
-    if (typeof maxSize !== 'number') { maxSize = 0; }
+    //       Infinity: unlimited size
 
     this.state = {
       counters: {}, // Counter for each category
       countersSum: 0, // Sum of $counters
-      maxSize: maxSize, // maxCountersSum
+      memorySize: Infinity, // meaning maxCountersSum
       order: [], // Ordered most probable category first.
       indices: {} // Category indices in $order array
     };
+
+    this.memorySize(memorySize);
   };
 
   exports.create = function (param) {
     return new ACD(param);
   };
     
+
+
+
 
 
   // Accessors
@@ -431,10 +443,11 @@ myModule.CategoricalDistribution = (function () {
   };
 
   ACD.prototype.subset = function (categories) {
-    // Return new adaptingCategoricalDistribution that has only the specified
-    // event categories. Counters stay the same, probabilities may change but
-    // the ratios between probabilities stay the same. Value of maxSize stays
-    // the same because there seems to be no good reason to select otherwise.
+    // Return new CategoricalDistribution that has only the specified
+    // categories. Counters stay the same, so probabilities may change but
+    // the ratios between probabilities stay the same. Value of memorySize
+    // stays the same because there seems to be no good reason to select
+    // otherwise.
     //
     // Precondition
     //   Given categories are mutually exclusive i.e. no duplicates.
@@ -447,7 +460,7 @@ myModule.CategoricalDistribution = (function () {
         s = this.state,
         acd, acds;
 
-    acd = new ACD(s.maxSize);
+    acd = new ACD(s.memorySize);
     acds = acd.state;
 
     // Counters
@@ -609,8 +622,13 @@ myModule.CategoricalDistribution = (function () {
       d.push(count);
     }
 
-    // Max size
-    d.push(s.maxSize);
+    // Memory size
+    // JSON does not support Infinity so use null.
+    if (s.memorySize === Infinity) {
+      d.push(null);
+    } else {
+      d.push(s.memorySize);
+    }
 
     return d;
   };
@@ -665,6 +683,10 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
+
+
+
+
   
   // Mutators
 
@@ -680,10 +702,16 @@ myModule.CategoricalDistribution = (function () {
     var i, ev, nextRobin,
         s = this.state;
 
+    // Without special handling of memorySize === 0, at least one event would
+    // be learned.
+    if (s.memorySize === 0) {
+      return this;
+    }
+
     // Increase counter
     for (i = 0; i < events.length; i += 1) {
 
-      if (s.maxSize > 0 && s.countersSum + 1 > s.maxSize) {
+      if (s.countersSum + 1 > s.memorySize) {
         // Decrease using algorithm Normalized Random.
         // Assert: s.countersSum > 0
         // Assert: s.order.length > 0
@@ -746,20 +774,29 @@ myModule.CategoricalDistribution = (function () {
     return this;
   };
 
-  ACD.prototype.maxSize = function (newMaxSize) {
-    // Get or set maxSize.
+  ACD.prototype.memorySize = function (newMemorySize) {
+    // Get or set memorySize.
     var delta, i;
 
-    if (typeof newMaxSize !== 'number') {
-      return this.state.maxSize;
+    if (typeof newMemorySize === 'undefined') {
+      return this.state.memorySize;
     } // else
 
-    delta = this.state.countersSum - newMaxSize;
+    if (typeof newMemorySize !== 'number') {
+      newMemorySize = Infinity;
+    }
+
+    if (newMemorySize < 0) {
+      newMemorySize = 0;
+    }
+
+    delta = this.state.countersSum - newMemorySize;
+    // Delta can be -Infinity
 
     if (delta > 0) {
       // Need to decrease.
       // Decreasing floor(delta) is not enough because sum will stay higher
-      // than maxSize. We must decrease by ceil(delta) times.
+      // than memorySize. We must decrease by ceil(delta) times.
       for (i = 0; i < Math.ceil(delta); i += 1) {
         // We cannot use 
         // this.unlearn(this.sample(Math.ceil(delta)));
@@ -767,8 +804,8 @@ myModule.CategoricalDistribution = (function () {
         this.unlearn(this.sample());
       }
     }
-    // Assert: countersSum <= newMaxSize
-    this.state.maxSize = newMaxSize;
+    // Assert: countersSum <= newMemorySize
+    this.state.memorySize = newMemorySize;
   };
 
   ACD.prototype.load = function (dumpedData) {
@@ -779,13 +816,13 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Return this for chaining.
 
-    var i, cat, count, s;
+    var i, cat, count, s, memSize;
 
     // Init
     s = {
       counters: {},
       countersSum: 0,
-      maxSize: 0,
+      memorySize: Infinity,
       order: [],
       indices: {}
     };
@@ -800,10 +837,13 @@ myModule.CategoricalDistribution = (function () {
       s.indices[cat] = s.order.length - 1;
     }
 
-    // Last value is maxSize
-    s.maxSize = dumpedData[i];
-
     this.state = s;
+
+    // Last value is memorySize.
+    // JSON converts Infinity to null so memorySize() should
+    // handle nulls as Infinity.
+    this.memorySize(dumpedData[i]);
+
     return this;
   };
   
@@ -816,7 +856,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Version
-  myModule.version = '1.2.0';
+  myModule.version = '2.0.0';
 
 
   // Make utils visible outside

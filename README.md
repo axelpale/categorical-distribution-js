@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v1.2.0</sup>
+# categorical-distribution.js<sup>v2.0.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -42,7 +42,7 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
     >> var d = CategoricalDistribution.create()
 
-To only remember the distribution of approximately 20 previous events:
+Memory size is unlimited by default. To only remember the distribution of approximately 20 previous events:
 
     >> var e = CategoricalDistribution.create(20)
 
@@ -70,7 +70,7 @@ The following three blocks produce equal results
 
 ### d.unlearn(events)
 
-Forget that these events happened. Do not forget the whole category.
+Forget that these events happened. Do not forget the whole category, only single events.
 
     // red 2, blue 1, green 1
     >> d.unlearn(['red', 'blue'])
@@ -173,7 +173,7 @@ Draw n samples randomly from the distribution. If isOrdered is true (false if om
 
 ### d.size()
 
-Number of events that form the distribution. Also a number of events in memory even though the exact events are not memorized.
+Number of events that form the distribution. In another words a number of events in the memory even though the order of the events is not memorized. Can't be larger than memory size.
 
     >> var d = CategoricalDistribution.create(3)
     >> d.learn(['red', 'blue'])
@@ -186,7 +186,7 @@ Number of events that form the distribution. Also a number of events in memory e
 
 ### d.numCategories()
 
-Number of different events in the distribution. If maxSize is set then some of the taught categories may have been forgotten.
+Number of different events in the distribution. If memorySize is limited then some of the taught categories may have been forgotten.
 
     // red 2, blue 1, green 1
     >> d.numCategories()
@@ -196,19 +196,22 @@ Number of different events in the distribution. If maxSize is set then some of t
     2    // red, blue
 
 
-### d.maxSize([newMaxSize])
+### d.memorySize([newMemorySize])
 
-Get or set the maximum number of events to be memorized. The order of the events is not remembered but their distribution is. Set to zero for unlimited memory.
+Get or set the maximum number of events to be memorized. The order of the events is not remembered but their distribution is. Set to Infinity for unlimited memory.
 
     >> var d = CategoricalDistribution.create()
-    >> d.maxSize()
-    0
+    >> d.memorySize()
+    Infinity
 
     >> var c = CategoricalDistribution.create(3)
-    >> d.maxSize()
+    >> c.memorySize()
     3
+    >> c.memorySize(Infinity)
+    >> c.memorySize()
+    Infinity
 
-If the memory size is exceeded the old events are forgotten. This also happens if a new maximum memory size is smaller than the current size. See [Under the hood](#under-the-hood) for detail.
+If the new memory size is smaller than the current size (i.e. number of remembered events) then forget as many old events as is required to match the size with the memory size. See [Under the hood](#under-the-hood) for detail.
 
 
 ### d.copy()
@@ -308,8 +311,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
-- maxSize to memorySize
-- memorySize to Infinity. What about zero?
 - in docs, write out the distribution instead of referring to d.learn
 - test subset and others with duplicate categories
 - test empty parameters
