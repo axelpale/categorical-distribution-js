@@ -62,9 +62,11 @@ The following three blocks produce equal results
 
     >> d.learn(['red', 'blue', 'red', 'green'])
 
+
     >> d.learn(['red', 'blue'])
     >> d.learn(['red', 'green'])
-    ---
+
+
     >> d.learn(['red', 'blue']).learn(['red', 'green'])
 
 
@@ -203,6 +205,7 @@ Get or set the maximum number of events to be memorized. The order of the events
     >> var d = CategoricalDistribution.create()
     >> d.memorySize()
     Infinity
+
 
     >> var c = CategoricalDistribution.create(3)
     >> c.memorySize()
