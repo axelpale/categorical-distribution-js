@@ -61,12 +61,10 @@ The order of the events matters only if the memory size is exceeded. A randomize
 The following three blocks produce equal results
 
     >> d.learn(['red', 'blue', 'red', 'green'])
-    
 
     >> d.learn(['red', 'blue'])
     >> d.learn(['red', 'green'])
-    
-    
+    ---
     >> d.learn(['red', 'blue']).learn(['red', 'green'])
 
 
@@ -206,7 +204,6 @@ Get or set the maximum number of events to be memorized. The order of the events
     >> d.memorySize()
     Infinity
 
-
     >> var c = CategoricalDistribution.create(3)
     >> c.memorySize()
     3
@@ -314,7 +311,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
-- in docs, write out the distribution instead of referring to d.learn
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods
