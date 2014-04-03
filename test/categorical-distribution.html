@@ -258,6 +258,42 @@
 
 
 
+
+
+    // Printing tests
+
+    test('print', function testCase() {
+      var u = unit.create().learn(['red','blue','blue']);
+      var zero = 'blue 1\nred  0\n';
+      var two = 'blue 0.67\nred  0.33\n';
+      var three = 'blue 0.667\nred  0.333\n';
+      var ten = 'blue 0.6666666667\nred  0.3333333333\n';
+      equal(u.print(), two);
+      equal(u.print(0), zero);
+      equal(u.print(3), three);
+
+      // test: print with invalid precisions
+      equal(u.print(true), two);
+      equal(u.print(''), two);
+      equal(u.print(-1), zero);
+      equal(u.print(Infinity), ten);
+      equal(u.print(1000), ten);
+    });
+
+    test('print empty distribution', function testCase() {
+      var u = unit.create();
+      equal(u.print(), '');
+    });
+
+    test('print categories of whitespaces', function testCase() {
+      var u = unit.create().learn(['\n', '']);
+      equal(u.print(), '  0.50\n\n 0.50\n');
+    });
+
+    
+
+
+
     // Adaptation tests
 
     test('size 1', function testCase() {

@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v1.1.0</sup>
+# categorical-distribution.js<sup>v1.2.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -255,7 +255,7 @@ Resets the distribution back to the dumped state. See [_d.dump()_](#ddump).
     undefined
 
 
-### _future_ d.print([precision])
+### d.print([precision])
     
     // red 4, blue 1, green 1
     >> d.print()
@@ -302,7 +302,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - maxSize to memorySize
 - memorySize to Infinity. What about zero?
 - in docs, write out the distribution instead of referring to d.learn
-- d.print()
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods

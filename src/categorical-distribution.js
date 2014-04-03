@@ -505,6 +505,48 @@ myModule.CategoricalDistribution = (function () {
     return c;
   };
 
+  ACD.prototype.print = function (precision) {
+    // Return human readable string representation of the distribution.
+    // 
+    // Parameter
+    //   precision (optional, default 2)
+    // 
+    var s = this.state,
+        i, cat, prob, probs,
+        j, maxCatStrLen = 0;
+    var len = s.order.length;
+    var result = '';
+
+    if (typeof precision !== 'number') {
+      precision = 2;
+    }
+
+    // Limit to range [0, 10]
+    precision = Math.max(Math.min(precision, 10), 0);
+    
+    probs = this.prob(s.order);
+
+    // Find padding width
+    for (i = 0; i < len; i += 1) {
+      cat = s.order[i];
+      maxCatStrLen = Math.max(maxCatStrLen, cat.length);
+    }
+
+    for (i = 0; i < len; i += 1) {
+      cat = s.order[i];
+      prob = probs[i];
+
+      // Pad cat to the length of the longest
+      for (j = cat.length; j < maxCatStrLen; j += 1) {
+        cat = cat + ' ';
+      }
+
+      result += cat + ' ' + prob.toFixed(precision) + '\n';
+    }
+
+    return result;
+  };
+
 
   
   // Mutators
