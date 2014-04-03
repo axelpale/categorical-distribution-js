@@ -325,6 +325,9 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - Under the hood
 - Customization feature + tests
 - Release to NPM
+- See also:
+  - https://github.com/jergason/categorical
+  - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/
 
 
 ## License
