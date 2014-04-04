@@ -27,6 +27,11 @@ Compatible with browsers and Node.js.
     ['dislike', 'like', 'like']
 
 
+## Example applications
+
+- [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html) 
+
+
 ## Install
 
 (not yet working) Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
