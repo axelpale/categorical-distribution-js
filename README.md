@@ -317,14 +317,17 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
+- do not forget zero categories
+  - option: maxNumCategories or forgetEmptyCategories
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods
 - example application
-- API documentation
-- Under the hood
+- Under the hood & rewrite source header comments.
 - Customization feature + tests
 - Release to NPM
+- Nice categorical distribution example image
+- More lightweight introduction
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/

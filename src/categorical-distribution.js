@@ -53,9 +53,6 @@ Related
 - http://en.wikipedia.org/wiki/Bag_of_words_model
 - http://en.wikipedia.org/wiki/Categorical_distribution
 
-TODO
-- Decide the forgetting algorithm
-
 */
 
 myModule.CategoricalDistribution = (function () {
@@ -122,6 +119,7 @@ myModule.CategoricalDistribution = (function () {
     s.indices[category] = i;
   };
 
+
   var sampleSimple = function (acd, n) {
     // Take N samples randomly.
     // Complexity O(n * m) where m is num of categories. This because
@@ -151,6 +149,7 @@ myModule.CategoricalDistribution = (function () {
 
     return result;
   };
+
 
   var sampleOrdered = function (acd, n) {
     // Take N samples randomly but return them in probability order.
@@ -215,16 +214,26 @@ myModule.CategoricalDistribution = (function () {
 
   // Constructor
 
-  var ACD = function (memorySize) {
+  var ACD = function (memorySize, forgetEmptyCategories) {
     // Parameter
     //   memorySize (optional, default Infinity)
     //     positive integer
     //       Infinity: unlimited size
+    //   forgetEmptyCategories (optional, default false)
+    //     boolean
+    //       true
+    //         if probability of a category drops to zero, remove all
+    //         notions of it.
+
+    if (forgetEmptyCategories !== true) {
+      forgetEmptyCategories = false;
+    }
 
     this.state = {
       counters: {}, // Counter for each category
       countersSum: 0, // Sum of $counters
       memorySize: Infinity, // meaning maxCountersSum
+      forgetEmptyCategories: forgetEmptyCategories,
       order: [], // Ordered most probable category first.
       indices: {} // Category indices in $order array
     };
@@ -232,8 +241,8 @@ myModule.CategoricalDistribution = (function () {
     this.memorySize(memorySize);
   };
 
-  exports.create = function (param) {
-    return new ACD(param);
+  exports.create = function (param1, param2) {
+    return new ACD(param1, param2);
   };
     
 
@@ -270,7 +279,8 @@ myModule.CategoricalDistribution = (function () {
 
     return result;
   };
-  
+
+
   ACD.prototype.head = function (n) {
     // N most probable event categories
     // 
@@ -293,6 +303,7 @@ myModule.CategoricalDistribution = (function () {
     } // else
     return [];
   };
+
 
   ACD.prototype.peak = function (deviationTolerance) {
     // Return most probable category (probability X) and all those categories
@@ -325,6 +336,7 @@ myModule.CategoricalDistribution = (function () {
     return s.order.slice(0,i);
   };
 
+
   ACD.prototype.subset = function (categories) {
     // Return new CategoricalDistribution that has only the specified
     // categories. Counters stay the same, so probabilities may change but
@@ -343,7 +355,7 @@ myModule.CategoricalDistribution = (function () {
         s = this.state,
         acd, acds;
 
-    acd = new ACD(s.memorySize);
+    acd = new ACD(s.memorySize, s.forgetEmptyCategories);
     acds = acd.state;
 
     // Counters
@@ -366,6 +378,7 @@ myModule.CategoricalDistribution = (function () {
 
     return acd;
   };
+
 
   ACD.prototype.rank = function (events) {
     // Order of the given events in the list of most probable categories.
@@ -394,6 +407,7 @@ myModule.CategoricalDistribution = (function () {
     return result;
   };
 
+
   ACD.prototype.each = function (iterator, context) {
     // Execute function over all categories in probability order.
     // 
@@ -419,6 +433,7 @@ myModule.CategoricalDistribution = (function () {
     return this;
   };
 
+
   ACD.prototype.map = function (iterator, context) {
     // Transform categories to an array. Iterator defines how the categories
     // are transformed and is called in probability order.
@@ -439,6 +454,7 @@ myModule.CategoricalDistribution = (function () {
     });
     return results;
   };
+
 
   ACD.prototype.sample = function (n, isOrdered) {
     // Draw n samples from the distribution.
@@ -478,6 +494,7 @@ myModule.CategoricalDistribution = (function () {
     return r;
   };
 
+
   ACD.prototype.size = function () {
     // Sum of the counters.
     // 
@@ -485,10 +502,12 @@ myModule.CategoricalDistribution = (function () {
     return this.state.countersSum;
   };
 
+
   ACD.prototype.numCategories = function () {
     // Return number of categories in memory.
     return this.state.order.length;
   };
+
 
   ACD.prototype.dump = function () {
     // Serialize to a shallow array.
@@ -513,8 +532,12 @@ myModule.CategoricalDistribution = (function () {
       d.push(s.memorySize);
     }
 
+    // forgetEmptyCategories
+    d.push(s.forgetEmptyCategories);
+
     return d;
   };
+
 
   ACD.prototype.copy = function () {
     // Return a copy of this distribution.
@@ -522,6 +545,7 @@ myModule.CategoricalDistribution = (function () {
     c.load(this.dump());
     return c;
   };
+
 
   ACD.prototype.print = function (precision) {
     // Return human readable string representation of the distribution.
@@ -586,7 +610,7 @@ myModule.CategoricalDistribution = (function () {
         s = this.state;
 
     // Without special handling of memorySize === 0, at least one event would
-    // be learned.
+    // be learned even when zero.
     if (s.memorySize === 0) {
       return this;
     }
@@ -619,7 +643,8 @@ myModule.CategoricalDistribution = (function () {
 
     return this;
   };
-    
+  
+
   ACD.prototype.unlearn = function (events) {
     // Decrease the counters of these events
     // Parameter
@@ -631,31 +656,39 @@ myModule.CategoricalDistribution = (function () {
     var i, cat,
         s = this.state;
 
-    // Decrease counter
     for (i = 0; i < events.length; i += 1) {
       cat = events[i];
 
       if (s.counters.hasOwnProperty(cat)) {
-        s.counters[cat] -= 1;
+        if (s.counters[cat] > 0) {
 
-        // Update the sum
-        s.countersSum -= 1;
+          s.counters[cat] -= 1;
 
-        // Move the category to its place.
-        sortOne(this, cat);
+          // Update the sum
+          s.countersSum -= 1;
 
-        // Remove empty category. It's the last in order if there is one.
-        if (s.counters[cat] <= 0) {
-          s.order.pop();
-          delete s.counters[cat];
-          delete s.indices[cat];
-        }
+          // Move the category to its place.
+          sortOne(this, cat);
+
+          if (s.counters[cat] <= 0) {
+            if (s.forgetEmptyCategories) {
+              // Remove empty category. It must be the last one because
+              // there cannot be multiple zeros if empty categories are
+              // forgotten.
+              s.order.pop();
+              delete s.counters[cat];
+              delete s.indices[cat];
+            }
+          }
+        } // else
+        // assert: forgetEmptyCategories must be true
       } // else do nothing
 
     }
 
     return this;
   };
+
 
   ACD.prototype.memorySize = function (newMemorySize) {
     // Get or set memorySize.
@@ -691,6 +724,44 @@ myModule.CategoricalDistribution = (function () {
     this.state.memorySize = newMemorySize;
   };
 
+
+  ACD.prototype.forgetEmptyCategories = function (newValue) {
+    // Get or set forgetEmptyCategories.
+
+    var s = this.state,
+        i, cat;
+
+    if (typeof newValue === 'undefined') {
+      return s.forgetEmptyCategories;
+    } // else
+
+    if (typeof newValue !== 'boolean') {
+      // Do nothing.
+      return;
+    } // else
+
+    if (!s.forgetEmptyCategories && newValue) {
+      // From free to restricted. We must remove all empty categories.
+      // The empty categories are the last ones so there is no need to
+      // update indices.
+      for (i = s.order.length - 1; i >= 0; i -= 1) {
+        cat = s.order[i];
+        if (s.counters[cat] <= 0) {
+          // Remove category
+          s.order.pop();
+          delete s.counters[cat];
+          delete s.indices[cat];
+        } else {
+          // All empty removed
+          break;
+        }
+      }
+    }
+
+    s.forgetEmptyCategories = newValue;
+  };
+
+
   ACD.prototype.load = function (dumpedData) {
     // Load everything from a serialized array.
     // 
@@ -706,12 +777,13 @@ myModule.CategoricalDistribution = (function () {
       counters: {},
       countersSum: 0,
       memorySize: Infinity,
+      forgetEmptyCategories: false,
       order: [],
       indices: {}
     };
 
     // Pairs
-    for (i = 0; i + 1 < dumpedData.length; i += 2) {
+    for (i = 0; i < dumpedData.length - 2; i += 2) {
       cat = dumpedData[i];
       count = dumpedData[i + 1];
       s.counters[cat] = count;
@@ -722,10 +794,12 @@ myModule.CategoricalDistribution = (function () {
 
     this.state = s;
 
-    // Last value is memorySize.
+    // Second last value is memorySize.
     // JSON converts Infinity to null so memorySize() should
     // handle nulls as Infinity.
     this.memorySize(dumpedData[i]);
+
+    this.forgetEmptyCategories(dumpedData[i + 1]);
 
     return this;
   };

@@ -325,22 +325,18 @@
 
 
 
-    // Adaptation and memorySize
+    // Adaptation: memorySize & forgetEmptyCategories
 
     test('memorySize 0', function testCase() {
       var u = unit.create(0);
       u.learn(['a', 'b']);
-      equal(u.numCategories(), 0, 'Should be empty.');
       deepEqual(u.prob(['a', 'b']), [0, 0]);
     });
 
     test('memorySize 1', function testCase() {
-      var u, p;
-      u = unit.create(1);
+      var u = unit.create(1);
       u.learn(['a', 'b']);
-      equal(u.numCategories(), 1, 'Should be only one category.');
-      p = u.prob(['b'])[0];
-      equal(p, 1);
+      deepEqual(u.prob(['a', 'b']), [0, 1]);
     });
 
     test('memorySize 2', function testCase() {
@@ -349,7 +345,7 @@
       var u = unit.create(2);
       u.learn(['a', 'b']);
       u.learn(['c']); // removes a or b
-      equal(u.numCategories(), 2);
+      equal(sum(u.prob(['a', 'b'])), 0.5);
 
       u.learn(['a','b','a','b','a','b','a','b']); // probably removes c
       var p = sum(u.prob(['a', 'b']));
@@ -366,8 +362,8 @@
       deepEqual(u.prob(['a', 'b']), [0, 0]);
     });
 
-    test('memorySize', function testCase() {
-      var u = unit.create(10);
+    test('memorySize reduction', function testCase() {
+      var u = unit.create(10, true);
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
       equal(u.memorySize(), 10);
 
@@ -378,10 +374,26 @@
     test('memorySize reduction from default', function testCase() {
       var u = unit.create();
       equal(u.memorySize(), Infinity);
+      u.forgetEmptyCategories(true);
 
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
       u.memorySize(1);
       equal(u.numCategories(), 1);
+    });
+
+    test('forgetEmptyCategories', function testCase() {
+      var u = unit.create(Infinity, false);
+      u.learn(['a', 'b']);
+      u.unlearn(['a', 'b']);
+      equal(u.numCategories(), 2);
+
+      u.forgetEmptyCategories(true);
+      equal(u.numCategories(), 0);
+
+      var v = unit.create(Infinity, true);
+      u.learn(['a', 'b']);
+      u.unlearn(['a', 'b']);
+      equal(u.numCategories(), 0);
     });
 
     
