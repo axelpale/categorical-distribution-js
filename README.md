@@ -317,8 +317,9 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
-- do not forget zero categories
-  - option: maxNumCategories or forgetEmptyCategories
+- support for scalars, requiring only arrays produces errors.
+- select more robust forgetting algorithm. Current is quite unpredictable.
+- easy way to tell the initial distribution. Method d.distribution()?
 - test subset and others with duplicate categories
 - test empty parameters
 - reorder methods
