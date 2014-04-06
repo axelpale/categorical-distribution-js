@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v2.0.0</sup>
+# categorical-distribution.js<sup>v3.0.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -54,14 +54,14 @@ Memory size is unlimited by default. To only remember the distribution of approx
 
 ### d.learn(events)
 
-Learn the distribution from these events.
+Learn the distribution from these events. [Chainable](#chaining).
 
     >> var d = CategoricalDistribution.create()
     >> d.learn(['red', 'blue', 'red', 'green'])
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.25, 0.25]
 
-The order of the events matters only if the memory size is exceeded. A randomized forgetting algorithm is applied to cope with the memory size limit. See [Under the hood](#under-the-hood) for details.
+The order of the events matters only if the memory size is exceeded. A forgetting algorithm is applied to cope with the memory size limit. See [Under the hood](#under-the-hood) for details.
 
 The following three blocks produce equal results
 
@@ -78,7 +78,7 @@ The following three blocks produce equal results
 
 ### d.unlearn(events)
 
-Forget that these events happened. Do not forget the whole category, only single events.
+Forget that these events happened. Do not forget the whole category, only single events. [Chainable](#chaining).
 
     // red 2, blue 1, green 1
     >> d.unlearn(['red', 'blue'])
@@ -99,7 +99,7 @@ Probabilities of events. If parameter is omitted return probabilities of all eve
 
 ### d.head([n])
 
-N most probable categories ordered by their probability. If n is omitted or zero, return all the categories.
+Return n most probable categories ordered by their probability. If n is omitted or zero, return all the categories.
 
     // red 2, blue 1, green 1
     >> d.head()
@@ -112,7 +112,7 @@ N most probable categories ordered by their probability. If n is omitted or zero
 
 ### d.peak(tolerance)
 
-List the most probable category and the categories whose probability differs from it at most by tolerance * 100 percent. Tolerance 1 will list all the categories. The list is ordered by the probability.
+List the most probable category and the categories whose probability differs from it at most by tolerance * 100 percent. Tolerance 1 will list all the categories. The list is ordered by probability.
 
     // red 5, blue 3, green 2
     >> d.prob(['red', 'blue', 'green'])
@@ -129,7 +129,7 @@ List the most probable category and the categories whose probability differs fro
 
 ### d.rank(events)
 
-Indices of the events in the list of most probable events. Most probable event has the rank 0. If two events have same probability the more recent one will have a ranking closer to the top. Events with zero probability have rank Infinity.
+Indices of the events in the list of most probable events. Most probable event has the rank 0. If two events have same probability the more recent one will have a ranking closer to the top. Yet unknown events have rank Infinity.
 
     // red 2, blue 1, green 1
     >> d.rank(['red', 'blue', 'yellow'])
@@ -240,7 +240,7 @@ Duplicate the distribution. Modifications to the duplicate do not alter the orig
 
 ### d.subset(categories)
 
-Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but their common ratios stay the same.
+Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but the ratios between them stay the same.
 
     // red 2, blue 1, green 1
     >> var c = d.subset(['red', 'blue'])
@@ -263,10 +263,9 @@ Serialize the state of the distribution to an array for example to be stored to 
 
 ### d.load()
 
-Reset the distribution back to the dumped state. See [_d.dump()_](#ddump).
+Reset the distribution back to the dumped state. See [_d.dump()_](#ddump). [Chainable](#chaining).
 
     >> d.load(...)
-    undefined
 
 
 ### d.print([precision])
@@ -323,17 +322,15 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 ## TODO
 
 - support for scalars, requiring only arrays produces errors.
-- select more robust forgetting algorithm. Current is quite unpredictable.
 - easy way to tell the initial distribution. Method d.distribution()?
 - test subset and others with duplicate categories
-- test empty parameters
 - reorder methods
-- example application
 - Under the hood & rewrite source header comments.
 - Customization feature + tests
 - Release to NPM
 - Nice categorical distribution example image
 - More lightweight introduction
+- Absolute peak
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/

@@ -325,7 +325,7 @@
 
 
 
-    // Adaptation: memorySize & forgetEmptyCategories
+    // Adaptation: memorySize
 
     test('memorySize 0', function testCase() {
       var u = unit.create(0);
@@ -340,18 +340,10 @@
     });
 
     test('memorySize 2', function testCase() {
-      // Non-deterministic test!!!
-      // = May fail sometimes
       var u = unit.create(2);
       u.learn(['a', 'b']);
-      u.learn(['c']); // removes a or b
-      equal(sum(u.prob(['a', 'b'])), 0.5);
-
-      u.learn(['a','b','a','b','a','b','a','b']); // probably removes c
-      var p = sum(u.prob(['a', 'b']));
-      ok(p > 1.0 - epsilon, 'Non-deterministic. May fail rarely.');
-      ok(p < 1.0 + epsilon, 'Non-deterministic. May fail rarely.');
-      equal(u.prob(['c'])[0], 0, 'Non-deterministic. May fail rarely.');
+      u.learn(['c']);
+      deepEqual(u.prob(['a', 'b', 'c']), [0.25, 0.25, 0.5]);
     });
 
     test('memorySize negative', function testCase() {
@@ -361,41 +353,6 @@
       equal(u.memorySize(), 0);
       deepEqual(u.prob(['a', 'b']), [0, 0]);
     });
-
-    test('memorySize reduction', function testCase() {
-      var u = unit.create(10, true);
-      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
-      equal(u.memorySize(), 10);
-
-      u.memorySize(1);
-      equal(u.numCategories(), 1);
-    });
-
-    test('memorySize reduction from default', function testCase() {
-      var u = unit.create();
-      equal(u.memorySize(), Infinity);
-      u.forgetEmptyCategories(true);
-
-      u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
-      u.memorySize(1);
-      equal(u.numCategories(), 1);
-    });
-
-    test('forgetEmptyCategories', function testCase() {
-      var u = unit.create(Infinity, false);
-      u.learn(['a', 'b']);
-      u.unlearn(['a', 'b']);
-      equal(u.numCategories(), 2);
-
-      u.forgetEmptyCategories(true);
-      equal(u.numCategories(), 0);
-
-      var v = unit.create(Infinity, true);
-      u.learn(['a', 'b']);
-      u.unlearn(['a', 'b']);
-      equal(u.numCategories(), 0);
-    });
-
     
   </script>
 </body>
