@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v3.0.0</sup>
+# categorical-distribution.js<sup>v3.1.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -300,9 +300,9 @@ Most of the functions that do not return anything else are chainable.
     [0.5, 0.5]
 
 
-## _future_ Customize CategoricalDistribution
+## Customize
 
-Customize CategoricalDistribution instance by:
+Add your own methods to CategoricalDistribution instance:
 
     CategoricalDistribution.extension.myFunction = function (...) {...};
 
@@ -310,6 +310,8 @@ After that you can:
 
     var d = CategoricalDistribution.create();
     d.myFunction();
+
+Great for making plugins.
 
 
 ## Under the hood
@@ -328,7 +330,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - test subset and others with duplicate categories
 - reorder methods
 - Under the hood & rewrite source header comments.
-- Customization feature + tests
 - Release to NPM
 - Nice categorical distribution example image
 - More lightweight introduction

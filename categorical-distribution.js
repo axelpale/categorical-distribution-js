@@ -1,4 +1,4 @@
-/*! categorical-distribution - v3.0.0 - 2014-04-06
+/*! categorical-distribution - v3.1.0 - 2014-04-07
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -144,8 +144,8 @@ with 1, 3, 2 and 2.
 
 If the limit is exceeded a forgetting algorithm must be applied. There are
 multiple options for such algorithm (n = number of categories):
-- Random: decrease a randomly selected weight. O(1)
-- Normalized Random: decrease a sampled weight.
+- Random Pick: decrease a randomly selected weight. O(1)
+- Normalized Random Pick: decrease a sampled weight.
 - Divide: multiply weights by number smaller than 1 to meet the limit. O(n)
 - Subtract: subtract weights by 1 / numCategories. O(n)
 - FIFO: First in first out. Decrease the weight of the oldest event. O(n)
@@ -879,6 +879,14 @@ myModule.CategoricalDistribution = (function () {
   
 
 
+
+  // Customization.
+  // Make possible to create plugins that attach methods to the instance.
+  // Usage: CategoricalDistribution.extension.myMethod = function (...) {...};
+  exports.extension = ACD.prototype;
+
+
+
   ///////////////
   return exports;
 
@@ -886,7 +894,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Version
-  myModule.version = '3.0.0';
+  myModule.version = '3.1.0';
 
 
   // Make utils visible outside

@@ -353,6 +353,23 @@
       equal(u.memorySize(), 0);
       deepEqual(u.prob(['a', 'b']), [0, 0]);
     });
+
+
+
+
+
+    // Customization
+
+    test('customization', function testCase() {
+      var u = unit.create();
+      unit.extension.myFunction = function () {
+        return 'foo';
+      };
+      equal(u.myFunction(), 'foo');
+    });
+
+
+
     
   </script>
 </body>

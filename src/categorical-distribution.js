@@ -762,6 +762,14 @@ myModule.CategoricalDistribution = (function () {
   
 
 
+
+  // Customization.
+  // Make possible to create plugins that attach methods to the instance.
+  // Usage: CategoricalDistribution.extension.myMethod = function (...) {...};
+  exports.extension = ACD.prototype;
+
+
+
   ///////////////
   return exports;
 
