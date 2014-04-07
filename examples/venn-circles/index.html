@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .category circle {
+      stroke: #000;
+      stroke-width: 5px;
+    }
+
+    .category text {
+      font: 1em sans-serif;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    .memory-size-form {
+      position: absolute;
+      top: 1em;
+      left: 1em;
+      z-index: 1;
+    }
+
+  </style>
+</head>
+<body>
+
+  <form class="memory-size-form">
+    <label for="memory-size-input">Memory size</label>
+    <input type="text" id="memory-size-input" name="memory-size" />
+    <input type="button" id="memory-size-submit" value="Update" />
+  </form>
+
+  <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="../../categorical-distribution.js"></script>
+
+  <script>
+
+    // Color palette
+    // http://www.colourlovers.com/palette/694737/Thought_Provoking
+    var cd = CategoricalDistribution.create(5)
+      .learn(['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A']);
+
+    // A way to play with adaptation speed.
+    var memorySizeInput = $('#memory-size-input');
+    var memorySizeSubmit = $('#memory-size-submit');
+    memorySizeSubmit.on('click', function () {
+      var val = parseFloat(memorySizeInput.val());
+      if (!isNaN(val) && val > 0) {
+        cd.memorySize(val);
+      }
+    });
+    // Show initial memory size
+    memorySizeInput.val(cd.memorySize());
+
+
+    var nodes = cd.map(function (cat) {
+      return {'category': cat, 'color': cat};
+    });
+
+    // Initial width and height
+    var width = 1000,
+        height = 1000;
+
+    // Full screen
+    // http://stackoverflow.com/a/11948988/638546
+    var svg = d3.select('body').append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', '0 0 ' + width + ' ' + height)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Prevent too small circles.
+    var visualProbability = d3.scale.linear().domain([0, 1]).range([0.01, 1]);
+
+    // Shortcut
+    var prob = function (d) {
+      return cd.prob([d.category])[0];
+    };
+
+    var radius = function (d) {
+      // Area is linearly propotional to the probability
+      //     PI * r^2 = A * p + B
+      // <=>      r^2 = (A * p + B) / PI
+      // <=>        r = sqrt( (A * p + B) / PI )
+      // <=>        r = sqrt( (A / PI) * (p + B/A))    // A' = sqrt(A / PI)
+      // <=>        r = A' * sqrt( p + B/A )           // B' = B/A
+      // <=>        r = A' * sqrt( p + B' )
+      return 200 * Math.sqrt( visualProbability(prob(d)) );
+    };
+    var charge = function (d) {
+      return -2400 * Math.sqrt( visualProbability(prob(d)) );
+    };
+    var fontSize = function (d) {
+      return 0.62 * radius(d);
+    };
+    var label = function (d) {
+      return prob(d).toFixed(2);
+    };
+
+    var force = d3.layout.force()
+      .gravity(0.04)
+      .charge(charge)
+      .nodes(nodes)
+      .size([width, height]);
+
+    var initForce = function () {
+      var catEnter = svg.selectAll('.category')
+        .data(nodes)
+       .enter().append('g')
+        .attr('class', 'category')
+        .call(force.drag)
+        .on('click', function (d) {
+          cd.learn([d.category]);
+          updateForce();
+        });
+
+      catEnter.append('circle')
+        .style('fill', function (d) { return d.color; });
+
+      catEnter.append('text')
+        .attr('class', 'label')
+        .attr('dy', '0.3em');
+
+      force.on("tick", function(e) {
+        svg.selectAll('.category')
+          .attr('transform', function (d) {
+            return 'translate(' + d.x + ',' + d.y + ')';
+          });
+      });
+    };
+
+    var updateForce = function () {
+      // Re-executes charge
+      force.start();
+
+      // Reshape
+      svg.selectAll('circle')
+        .attr('r', radius);
+      svg.selectAll('text')
+        .style('font-size', fontSize)
+        .text(label);
+    };
+
+    initForce();
+    updateForce();
+
+  </script>
+</body>
+</html>

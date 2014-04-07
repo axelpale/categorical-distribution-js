@@ -29,6 +29,7 @@ Compatible with browsers and Node.js.
 
 ## Example applications
 
+- [Venn Circles](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/venn-circles/index.html)
 - [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html) 
 
 
@@ -321,6 +322,7 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
+- change memory size to learningRate. Use multiplication. Changing learning rate deos not forget anything after that.
 - support for scalars, requiring only arrays produces errors.
 - easy way to tell the initial distribution. Method d.distribution()?
 - test subset and others with duplicate categories
