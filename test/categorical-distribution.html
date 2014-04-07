@@ -52,10 +52,10 @@
       var u = unit.create().learn(['a', 'b']);
       throws(function () {
         u.prob('a');
-      });
+      }, unit.NotAnArrayException, 'Prob should inform about missing array');
       throws(function () {
         u.rank('a');
-      });
+      }, unit.NotAnArrayException, 'Rank should inform about missing array');
     });
 
     test('peak', function testCase() {
@@ -113,6 +113,13 @@
       u.learn(['b']);
       u.unlearn(['a']);
       deepEqual(u.rank(['a', 'b']), [1, 0]);
+    });
+
+    test('unlearn over', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'b']);   // + b
+      u.unlearn(['b', 'b']); // - bb
+      deepEqual(u.prob(['a', 'b']), [1, 0]);
     });
 
     test('each', function testCase() {
@@ -233,7 +240,7 @@
     });
 
     test('chaining', function testCase() {
-      var u = unit.create(4).learn(['aa','bb','aa']);
+      var u = unit.create().learn(['aa','bb','aa']);
       var p = u.subset(['aa']).learn(['bb']).prob(['aa']);
       ok(p > 2/3 - epsilon);
       ok(p < 2/3 + epsilon);
@@ -261,7 +268,7 @@
       deepEqual(u2.dump(), dumped);
       deepEqual(u2.head(), u.head());
       deepEqual(u2.rank(['a', 'b']), [0, 1]);
-      equal(u.memorySize(), u2.memorySize());
+      equal(u.learningRate(), u2.learningRate());
     });
 
     test('dump & load via JSON', function testCase() {
@@ -279,13 +286,28 @@
       deepEqual(u.dump(), u2.dump());
       deepEqual(u2.head(), u.head());
       deepEqual(u2.rank(['a', 'b']), [0, 1]);
-      equal(u.memorySize(), u2.memorySize());
+      equal(u.learningRate(), u2.learningRate());
 
       u3 = unit.create(2);
       u3.learn(['a', 'a', 'b']);
       var strDump = JSON.stringify(u3.dump());
       u2.load(JSON.parse(strDump));
-      equal(u2.memorySize(), 2);
+      equal(u2.learningRate(), 2);
+    });
+
+    test('load invalid', function testCase() {
+      var u  = unit.create();
+      var v = unit.create();
+      u.learn(['a', 'a', 'b']);
+      var tooShortDump = u.dump().slice(0, -1);
+
+      throws(
+        function () {
+          v.load(tooShortDump);
+        },
+        unit.InvalidDumpException
+      );
+      
     });
 
 
@@ -325,33 +347,85 @@
 
 
 
-    // Adaptation: memorySize
+    // Adaptation: learningRate
 
-    test('memorySize 0', function testCase() {
+    test('learningRate 0', function testCase() {
       var u = unit.create(0);
       u.learn(['a', 'b']);
       deepEqual(u.prob(['a', 'b']), [0, 0]);
     });
 
-    test('memorySize 1', function testCase() {
-      var u = unit.create(1);
+    test('learningRate 1, the default', function testCase() {
+      var u = unit.create();
       u.learn(['a', 'b']);
-      deepEqual(u.prob(['a', 'b']), [0, 1]);
+      equal(u.learningRate(), 1);
+      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
     });
 
-    test('memorySize 2', function testCase() {
+    test('learningRate 2', function testCase() {
       var u = unit.create(2);
-      u.learn(['a', 'b']);
-      u.learn(['c']);
-      deepEqual(u.prob(['a', 'b', 'c']), [0.25, 0.25, 0.5]);
+      u.learn(['a', 'b', 'c']);
+      deepEqual(u.prob(['a', 'b', 'c']), [1/7, 2/7, 4/7]);
     });
 
-    test('memorySize negative', function testCase() {
+    test('learningRate Infinity', function testCase() {
+      var u = unit.create(Infinity);
+      u.learn(['a', 'b', 'c']);
+      deepEqual(u.prob(['a', 'b', 'c']), [0, 0, 1], 'Last should be all.');
+    });
+
+    test('learningRate negative', function testCase() {
       // Same effect as zero
       var u = unit.create(-1);
       u.learn(['a', 'b']);
-      equal(u.memorySize(), 0);
+      equal(u.learningRate(), 0);
       deepEqual(u.prob(['a', 'b']), [0, 0]);
+    });
+
+    test('learningRate reset', function testCase() {
+      var u = unit.create(1);
+      u.learn(['a', 'b']);
+      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
+      u.learningRate(Infinity);
+      u.learn(['a']);
+      deepEqual(u.prob(['a', 'b']), [1, 0]);
+    });
+
+    test('learningRate with learn & unlearn', function testCase() {
+      // The inverse type of relation between learn and unlearn
+      var u = unit.create(2);
+      u.learn(['a']);
+      var v = u.copy();
+      var evs = ['a', 'b', 'b', 'a', 'b'];
+      u.learn(evs);
+      u.unlearn(evs.reverse());
+      deepEqual(u.prob(['a', 'b']), v.prob(['a', 'b']));
+    });
+
+    test('eventWeight overflow', function testCase() {
+      var u, p;
+      u = unit.create(Math.pow(Number.MAX_VALUE, 0.6));
+      u.learn(['a']);
+      deepEqual(u.prob(['a', 'b']), [1, 0]);
+
+      u.learn(['b']);
+      pa = u.prob(['b'])[0];
+      pb = u.prob(['b'])[0];
+      // Unfortunately pb === 1
+      ok(pa > 0, 'Should not be zero but is ' + p);
+      ok(pb > 1 - epsilon, 'Should be close to 1 but is ' + p);
+    });
+
+    test('weightSum overflow', function testCase() {
+      var LARGE, u, p;
+      LARGE = Number.MAX_VALUE * 0.9;
+      // LARGE + LARGE = Infinity
+      u = unit.create(LARGE);
+      u.learn(['a']); // eventWeight turns large but no normalization
+      u.learningRate(1);
+
+      u.learn(['b']); // without normalization weightsSum goes to Infinity
+      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
     });
 
 

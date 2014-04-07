@@ -2,6 +2,20 @@
 
 Adapting Categorical Distribution
 
+Learning rate is a number in range [0, Infinity).
+It tells how important is a learned event in relation to the previous one.
+Learning rate of 1 keeps the importancy same. Importancy of the previous
+events do not drop.
+Rate 1.2 means that the importancy of previous events drops by 1/1.2 for each
+new event. Rate 0.5 means that importancy of previous events grow, making
+changing the distribution hard. Rate 0 means that new events do not affect
+to the distribution at all.
+Rate of 10 means that new events weight 10 times more than the previous one.
+Learning rate is 1 by default.
+Learning rate of Infinity means that all the previous events do not mean
+anything anymore.
+
+
 In this distribution every category has its own numeric weight. When
 an event belonging to a category is taught to the distribution the weight of
 the category is increased by one. The events in the category with the biggest
@@ -121,6 +135,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   var forgetBy = function (acd, n) {
+    // DEPRECATED
     // Decrease weights so that the sum decreases by n down to zero.
     // Main forgettion algorithm.
 
@@ -137,6 +152,23 @@ myModule.CategoricalDistribution = (function () {
     }
 
     s.weightsSum = newWeightsSum;
+  };
+
+
+  var multiplyWeights = function (acd, multiplier) {
+    // Multiply weights and update weightsSum
+
+    var s, len, newWeightsSum, ratio, i, cat;
+    
+    s = acd.state;
+    len = s.order.length;
+
+    for (i = 0; i < len; i += 1) {
+      cat = s.order[i];
+      s.weights[cat] *= multiplier;
+    }
+
+    s.weightsSum *= multiplier;
   };
 
 
@@ -222,11 +254,20 @@ myModule.CategoricalDistribution = (function () {
 
   // Exceptions
 
-  var NotAnArrayException = {
-    name: 'NotAnArrayException',
-    message: 'Parameter is required to be an array'
+  var NotAnArrayException = function () {
+    // Usage: new NotAnArrayException();
+    this.name = 'NotAnArrayException';
+    this.message = 'Parameter is required to be an array';
   };
   
+  var InvalidDumpException = function () {
+    // Usage: new InvalidDumpException();
+    this.name = 'InvalidDumpException';
+    this.message = 'Dump cannot be loaded because of invalid syntax.';
+  };
+
+  exports.NotAnArrayException = NotAnArrayException;
+  exports.InvalidDumpException = InvalidDumpException;
 
 
 
@@ -234,21 +275,24 @@ myModule.CategoricalDistribution = (function () {
 
   // Constructor
 
-  var ACD = function (memorySize) {
+  var ACD = function (learningRate) {
     // Parameter
-    //   memorySize (optional, default Infinity)
+    //   learningRate (optional, default 1)
     //     positive number
-    //       Infinity: unlimited size
+    //       0: Learn nothing; new events have no effect.
+    //       1: Every event has equal effect regardless of their order
+    //       Infinity: only last counts
 
     this.state = {
       weights: {}, // Weight for each category
       weightsSum: 0, // Sum of $weights
-      memorySize: Infinity, // meaning maxWeightsSum
+      eventWeight: 1, // Weight of the previous event.
+      learningRate: 1, // How important is new event in relation to the prev
       order: [], // Ordered most probable category first.
       indices: {} // Category indices in $order array
     };
 
-    this.memorySize(memorySize);
+    this.learningRate(learningRate);
   };
 
   exports.create = function (param1) {
@@ -272,10 +316,19 @@ myModule.CategoricalDistribution = (function () {
         s = this.state;
 
     if (typeof events === 'string') {
-      throw NotAnArrayException;
+      throw new NotAnArrayException();
     } else if (typeof events === 'undefined') {
       events = s.order;
     }
+
+    // Avoid dividing by zero
+    if (s.weightsSum === 0) {
+      // Array of zeros.
+      for (i = 0; i < events.length; i += 1) {
+        result.push(0);
+      }
+      return result;
+    } // else
  
     for (i = 0; i < events.length; i += 1) {
       ev = events[i];
@@ -351,7 +404,7 @@ myModule.CategoricalDistribution = (function () {
   ACD.prototype.subset = function (categories) {
     // Return new CategoricalDistribution that has only the specified
     // categories. Weights stay the same, so probabilities may change but
-    // the ratios between probabilities stay the same. Value of memorySize
+    // the ratios between probabilities stay the same. Value of learningRate
     // stays the same because there seems to be no good reason to select
     // otherwise.
     //
@@ -366,8 +419,12 @@ myModule.CategoricalDistribution = (function () {
         s = this.state,
         acd, acds;
 
-    acd = new ACD(s.memorySize);
+    acd = new ACD(s.learningRate);
     acds = acd.state;
+
+    // Previous event weight
+    // There seems to be no good reason to change event weight
+    acds.eventWeight = s.eventWeight;
 
     // Weights
     for (i = 0; i < categories.length; i += 1) {
@@ -402,7 +459,7 @@ myModule.CategoricalDistribution = (function () {
         s = this.state;
 
     if (typeof events === 'string') {
-      throw NotAnArrayException;
+      throw new NotAnArrayException();
     } else if (typeof events === 'undefined') {
       events = s.order; // stupid because result is [0, 1, 2, ...]
     }
@@ -508,6 +565,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   ACD.prototype.size = function () {
+    // DEPRECATED
     // Sum of the weights.
     // 
     // Return positive integer.
@@ -536,13 +594,16 @@ myModule.CategoricalDistribution = (function () {
       d.push(count);
     }
 
-    // Memory size
+    // learningRate
     // JSON does not support Infinity so use null.
-    if (s.memorySize === Infinity) {
+    if (s.learningRate === Infinity) {
       d.push(null);
     } else {
-      d.push(s.memorySize);
+      d.push(s.learningRate);
     }
+
+    // eventWeight
+    d.push(s.eventWeight);
 
     return d;
   };
@@ -615,36 +676,71 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Return this for chaining
 
-    var i, ev,
-        s = this.state;
+    var i, ev, s, nextEventWeight;
+    s = this.state;
 
+    /*
     // Without special handling of memorySize === 0, at least one event would
     // be learned even when zero.
     if (s.memorySize === 0) {
       return this;
     } // else
+    */
 
     // Increase weight
     for (i = 0; i < events.length; i += 1) {
 
-      if (s.weightsSum + 1 > s.memorySize) {
-        // Decrease using algorithm Divide.
-        // Assert: s.weightsSum > 0
-        // Assert: s.order.length > 0
-        forgetBy(this, 1);
+      // Avoid arithmetic overflow by normalizing the distribution.
+      // Normalization complexity is O(n) so normalize only when needed.
+      // Risky variables are s.weights, s.weightsSum and s.eventWeight.
+
+      // Risky situation 1
+      // s.learningRate is Infinity.
+      if (s.learningRate > Number.MAX_VALUE) {
+        multiplyWeights(this, 0);
+        s.eventWeight = 1;
+      } else {
+        // assert s.learningRate < Infinity
+
+        // Risky situation 2
+        // s.eventWeight grows to Infinity.
+        nextEventWeight = s.eventWeight * s.learningRate;
+        if (nextEventWeight > Number.MAX_VALUE) {
+          // Multiply all so that eventWeight drops back to 1 and 
+          // can therefore be multiplied by s.learningRate without
+          // breaking the upper limit.
+          multiplyWeights(this, 1 / s.eventWeight);
+          s.eventWeight = s.learningRate;
+        } else {
+
+          // Risky situation 3
+          // s.weightsSum grows to Infinity.
+          // Because s.weightsSum >= s.weights[ev] for all ev, s.weights[ev]
+          // do not need separate risk handling.
+          if (s.weightsSum + nextEventWeight > Number.MAX_VALUE) {
+            // Multiply all so that s.weightsSum drops back to 1.
+            s.eventWeight *= s.learningRate / s.weightsSum;
+            multiplyWeights(this, 1 / s.weightsSum);
+          } else {
+
+            // Default case.
+            // Change the importancy of the new event
+            s.eventWeight *= s.learningRate;
+          }
+        }
       }
 
       ev = events[i];
       if (s.weights.hasOwnProperty(ev)) {
-        s.weights[ev] += 1;
+        s.weights[ev] += s.eventWeight;
       } else {
-        s.weights[ev] = 1;
+        s.weights[ev] = s.eventWeight;
         s.order.push(ev);
         s.indices[ev] = s.order.length - 1;
       }
 
       // Update the sum
-      s.weightsSum += 1;
+      s.weightsSum += s.eventWeight;
 
       // Move the category to its place.
       sortOne(this, ev);
@@ -655,7 +751,9 @@ myModule.CategoricalDistribution = (function () {
   
 
   ACD.prototype.unlearn = function (events) {
-    // Decrease the weights of these events
+    // Decrease the weights of these events.
+    // Inverse of learn.
+    // 
     // Parameter
     //   events
     //     an array of events
@@ -670,54 +768,47 @@ myModule.CategoricalDistribution = (function () {
       cat = events[i];
 
       if (s.weights.hasOwnProperty(cat)) {
-        if (s.weights[cat] > 0) {
 
-          // Limit to zero
-          newWeight = Math.max(0, s.weights[cat] - 1);
-          delta = newWeight - s.weights[cat];
-          s.weights[cat] = newWeight;
+        // Decrease weight and limit to zero
+        newWeight = Math.max(0, s.weights[cat] - s.eventWeight);
+        delta = newWeight - s.weights[cat];
+        s.weights[cat] = newWeight;
 
-          // Update the sum
-          s.weightsSum += delta; // delta < 0
+        // Decrease sum the same amount
+        s.weightsSum += delta; // delta < 0
 
-          // Move the category to its place.
-          sortOne(this, cat);
+        // Move the category to its place.
+        sortOne(this, cat);
 
-        }
+        s.eventWeight /= s.learningRate;
       } // else do nothing
-
     }
 
     return this;
   };
 
 
-  ACD.prototype.memorySize = function (newMemorySize) {
-    // Get or set memorySize.
+  ACD.prototype.learningRate = function (newLearningRate) {
+    // Get or set learningRate.
     var s, delta, i;
     s = this.state;
 
-    if (typeof newMemorySize === 'undefined') {
-      return s.memorySize;
+    if (typeof newLearningRate === 'undefined') {
+      return s.learningRate;
     } // else
 
-    if (typeof newMemorySize !== 'number') {
-      newMemorySize = Infinity;
+    if (typeof newLearningRate !== 'number') {
+      // Invalid parameter; do nothing
+      return this;
     }
 
     // Limit
-    newMemorySize = Math.max(0, newMemorySize);
-
-    delta = s.weightsSum - newMemorySize;
-    // Delta can be -Infinity
-
-    if (delta > 0) {
-      // Need to decrease.
-      forgetBy(this, delta);
-    }
+    newLearningRate = Math.max(0, newLearningRate);
 
     // Assert s.weightsSum === newMemorySize
-    s.memorySize = newMemorySize;
+    s.learningRate = newLearningRate;
+
+    return this;
   };
 
 
@@ -729,13 +820,18 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Return this for chaining.
 
-    var i, cat, count, s, memSize;
+    var i, cat, count, s, rate, weight;
+
+    if (dumpedData.length < 2 || dumpedData.length % 2 !== 0) {
+      throw new InvalidDumpException();
+    }
 
     // Init
     s = {
       weights: {},
       weightsSum: 0,
-      memorySize: Infinity,
+      eventWeight: 1,
+      learningRate: 1,
       order: [],
       indices: {}
     };
@@ -752,10 +848,18 @@ myModule.CategoricalDistribution = (function () {
 
     this.state = s;
 
-    // Second last value is memorySize.
-    // JSON converts Infinity to null so memorySize() should
-    // handle nulls as Infinity.
-    this.memorySize(dumpedData[i]);
+    // Second last value is learningRate.
+    // JSON converts Infinity to null.
+    rate = dumpedData[i];
+    if (rate === null) {
+      s.learningRate = Infinity;
+    } else {
+      this.learningRate(rate);
+    }
+
+    // Last value is event weight
+    weight = dumpedData[i + 1];
+    s.eventWeight = weight;
 
     return this;
   };
@@ -763,10 +867,15 @@ myModule.CategoricalDistribution = (function () {
 
 
 
+
+
   // Customization.
   // Make possible to create plugins that attach methods to the instance.
   // Usage: CategoricalDistribution.extension.myMethod = function (...) {...};
   exports.extension = ACD.prototype;
+
+
+
 
 
 

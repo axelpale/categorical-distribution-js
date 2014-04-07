@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v3.1.0</sup>
+# categorical-distribution.js<sup>v4.0.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -44,13 +44,13 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 ## API
 
 
-### CategoricalDistribution.create([memorySize])
+### CategoricalDistribution.create([learningRate])
 
     >> var d = CategoricalDistribution.create()
 
-Memory size is unlimited by default. To only remember the distribution of approximately 20 previous events:
+By default each event has equal weight in the distribution. Set the learning rate greater than 1 (1 is default) for adapting distribution. Learning rate 1.5 makes new event 1.5 times more important than the previous. In another words the effect of the previous events dimishes to 1/1.5. See [Under the hood](#under-the-hood) for details.
 
-    >> var e = CategoricalDistribution.create(20)
+    >> var e = CategoricalDistribution.create(1.5)
 
 
 ### d.learn(events)
@@ -62,7 +62,7 @@ Learn the distribution from these events. [Chainable](#chaining).
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.25, 0.25]
 
-The order of the events matters only if the memory size is exceeded. A forgetting algorithm is applied to cope with the memory size limit. See [Under the hood](#under-the-hood) for details.
+The order of the events matters only if the learning rate is not 1 (the default). See [Under the hood](#under-the-hood) for details.
 
 The following three blocks produce equal results
 
@@ -77,9 +77,10 @@ The following three blocks produce equal results
 >> d.learn(['red', 'blue']).learn(['red', 'green'])
 ```
 
+
 ### d.unlearn(events)
 
-Forget that these events happened. Do not forget the whole category, only single events. [Chainable](#chaining).
+Forget that these events happened. Do not forget the whole category, only single events. Inverse of [d.learn](#dlearnevents). [Chainable](#chaining).
 
     // red 2, blue 1, green 1
     >> d.unlearn(['red', 'blue'])
@@ -195,35 +196,30 @@ Number of events that form the distribution. In another words a number of events
 
 ### d.numCategories()
 
-Number of different events in the distribution. If memorySize is limited then some of the taught categories may have been forgotten.
+Number of different events in the distribution.
 
     // red 2, blue 1, green 1
     >> d.numCategories()
-    3    // red, green, blue
-    >> d.unlearn('red', 'green')
-    >> d.numCategories()
-    2    // red, blue
+    3
 
 
-### d.memorySize([newMemorySize])
+### d.learningRate([newLearningRate])
 
-Get or set the maximum number of events to be memorized. The order of the events is not remembered but their distribution is. Set to Infinity for unlimited memory.
+Get or set how important is an event in relation to the previous ones. With learning rate zero the new events do not have any effect. Learning rate Infinity makes the distribution to be based only on the last event. See [Under the hood](#under-the-hood) for detail.
 
 ```
 >> var d = CategoricalDistribution.create()
->> d.memorySize()
+>> d.learningRate()
+1
+```
+```
+>> var c = CategoricalDistribution.create(1.5)
+>> c.learningRate()
+1.5
+>> c.learningRate(Infinity)
+>> c.learningRate()
 Infinity
 ```
-```
->> var c = CategoricalDistribution.create(3)
->> c.memorySize()
-3
->> c.memorySize(Infinity)
->> c.memorySize()
-Infinity
-```
-
-If the new memory size is smaller than the current size (i.e. number of remembered events) then forget as many old events as is required to match the size with the memory size. See [Under the hood](#under-the-hood) for detail.
 
 
 ### d.copy()
@@ -241,7 +237,7 @@ Duplicate the distribution. Modifications to the duplicate do not alter the orig
 
 ### d.subset(categories)
 
-Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but the ratios between them stay the same.
+Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but the ratios between them stay the same. Learning rate stays the same.
 
     // red 2, blue 1, green 1
     >> var c = d.subset(['red', 'blue'])
@@ -324,8 +320,9 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
-- change memory size to learningRate. Use multiplication. Changing learning rate deos not forget anything after that.
 - support for scalars, requiring only arrays produces errors.
+- remove d.size(). No public meaning anymore.
+- dump & load api docs
 - easy way to tell the initial distribution. Method d.distribution()?
 - test subset and others with duplicate categories
 - reorder methods
@@ -334,6 +331,8 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - Nice categorical distribution example image
 - More lightweight introduction
 - Absolute peak
+- unlearn overflow tests
+- learn & unlearn underflow tests
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/
