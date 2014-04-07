@@ -24,7 +24,7 @@
       text-anchor: middle;
     }
 
-    .memory-size-form {
+    .learning-rate-form {
       position: absolute;
       top: 1em;
       left: 1em;
@@ -35,10 +35,10 @@
 </head>
 <body>
 
-  <form class="memory-size-form">
-    <label for="memory-size-input">Memory size</label>
-    <input type="text" id="memory-size-input" name="memory-size" />
-    <input type="button" id="memory-size-submit" value="Update" />
+  <form class="learning-rate-form">
+    <label for="learning-rate-input">Learning rate</label>
+    <input type="text" id="learning-rate-input" name="learning-rate" />
+    <input type="button" id="learning-rate-submit" value="Update" />
   </form>
 
   <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
@@ -49,20 +49,20 @@
 
     // Color palette
     // http://www.colourlovers.com/palette/694737/Thought_Provoking
-    var cd = CategoricalDistribution.create(5)
+    var cd = CategoricalDistribution.create(1.2)
       .learn(['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A']);
 
     // A way to play with adaptation speed.
-    var memorySizeInput = $('#memory-size-input');
-    var memorySizeSubmit = $('#memory-size-submit');
-    memorySizeSubmit.on('click', function () {
-      var val = parseFloat(memorySizeInput.val());
+    var learningRateInput = $('#learning-rate-input');
+    var learningRateSubmit = $('#learning-rate-submit');
+    learningRateSubmit.on('click', function () {
+      var val = parseFloat(learningRateInput.val());
       if (!isNaN(val) && val > 0) {
-        cd.memorySize(val);
+        cd.learningRate(val);
       }
     });
-    // Show initial memory size
-    memorySizeInput.val(cd.memorySize());
+    // Show initial learning rate
+    learningRateInput.val(cd.learningRate());
 
 
     var nodes = cd.map(function (cat) {
