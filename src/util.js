@@ -89,10 +89,23 @@ var shuffle = function (array) {
   return array;
 };
 
+var clone = function (obj) {
+  // Copy the object
+  // http://stackoverflow.com/a/728694/638546
+  if (null === obj || 'object' !== typeof obj) { return obj; }
+  var copy = obj.constructor();
+  for (var attr in obj) {
+    if (obj.hasOwnProperty(attr)) { copy[attr] = obj[attr]; }
+  }
+  return copy;
+};
+
 // The following lines are needed to test the util functions from outside.
 myModule.util = {
   isArray: isArray,
   toArray: toArray,
   randomFromInterval: randomFromInterval,
-  randomOrderedSetFromInterval: randomOrderedSetFromInterval
+  randomOrderedSetFromInterval: randomOrderedSetFromInterval,
+  shuffle: shuffle,
+  clone: clone
 };
