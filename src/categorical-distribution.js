@@ -266,8 +266,14 @@ myModule.CategoricalDistribution = (function () {
     this.message = 'Dump cannot be loaded because of invalid syntax.';
   };
 
+  var InvalidDistributionException = function () {
+    this.name = 'InvalidDistributionException';
+    this.message = 'Distribution is in unknown form.';
+  };
+
   exports.NotAnArrayException = NotAnArrayException;
   exports.InvalidDumpException = InvalidDumpException;
+  exports.InvalidDistributionException = InvalidDistributionException;
 
 
 
@@ -679,13 +685,11 @@ myModule.CategoricalDistribution = (function () {
     var i, ev, s, nextEventWeight;
     s = this.state;
 
-    /*
-    // Without special handling of memorySize === 0, at least one event would
-    // be learned even when zero.
-    if (s.memorySize === 0) {
-      return this;
-    } // else
-    */
+    // Without special handling of s.eventWeight === 0, it stays zero even
+    // when s.learningRate is not.
+    if (s.eventWeight === 0) {
+      s.eventWeight = 1;
+    }
 
     // Increase weight
     for (i = 0; i < events.length; i += 1) {
@@ -780,7 +784,9 @@ myModule.CategoricalDistribution = (function () {
         // Move the category to its place.
         sortOne(this, cat);
 
-        s.eventWeight /= s.learningRate;
+        if (s.learningRate !== 0) {
+          s.eventWeight /= s.learningRate;
+        }
       } // else do nothing
     }
 
@@ -807,6 +813,100 @@ myModule.CategoricalDistribution = (function () {
 
     // Assert s.weightsSum === newMemorySize
     s.learningRate = newLearningRate;
+
+    return this;
+  };
+
+
+  ACD.prototype.dist = function (newDistribution) {
+    // Get or set the whole distribution. If newDistribution is not set,
+    // a normalized distribution object is returned. Otherwise this is
+    // returned.
+    // 
+    // Parameter
+    //   newDistribution (optional)
+    //     Object where keys are the categories and values the weights.
+    //     Does not have to be normalized (i.e. sum can be other than 1)
+    //     e.g. {red: 1.1, blue: 5, green: 2.1}
+    //     If distribution was empty before this new, next event
+    //     will have weight of 1.
+    //     If omitted, return the current distiribution
+
+    var s, w, distr, cat,
+        newWeights, newWeightsSum, newOrder, newIndices,
+        weight, i;
+    s = this.state;
+
+    if (typeof newDistribution === 'undefined') {
+      w = s.weights;
+
+      if (s.weightsSum === 0) {
+        // All weights must be 0
+        return clone(w);
+      } // else
+
+      // Return current distribution in normalized form.
+      distr = {};
+      for (cat in s.weights) {
+        if (w.hasOwnProperty(cat)) {
+          distr[cat] = w[cat] / s.weightsSum;
+        }
+      }
+      return distr;
+    } // else
+
+    if (typeof newDistribution !== 'object') {
+      throw new InvalidDistributionException();
+    } // else
+
+    // Set new distribution
+
+    // Calculate the sum and see if it's valid number.
+    // At the same time copy the distribution.
+    newWeights = {};
+    newWeightsSum = 0;
+    newOrder = [];
+    for (cat in newDistribution) {
+      if (newDistribution.hasOwnProperty(cat)) {
+        weight = newDistribution[cat];
+        if (weight >= 0) {
+          newWeights[cat] = weight;
+          newWeightsSum += weight;
+          newOrder.push(cat);
+        } else {
+          throw new InvalidDistributionException();
+        }
+      }
+    }
+    // assert all newWeights > 0
+
+    if (isNaN(newWeightsSum) || newWeightsSum === Infinity) {
+      throw new InvalidDistributionException();
+    }
+
+    // Order the categories
+    newOrder.sort(function (a, b) {
+      return newWeights[b] - newWeights[a];
+    });
+
+    // Build indices
+    newIndices = {};
+    for (i = 0; i < newOrder.length; i += 1) {
+      newIndices[newOrder[i]] = i;
+    }
+
+    // Adjust eventWeight so that it would have similar effect as before.
+    // The effect is proportional to the weightsSum.
+    if (newWeightsSum === 0 || s.weightsSum === 0) {
+      s.eventWeight = 1;
+    } else {
+      s.eventWeight = s.eventWeight * newWeightsSum / s.weightsSum;
+    }
+
+    s.weights = newWeights;
+    s.weightsSum = newWeightsSum;
+    s.order = newOrder;
+    s.indices = newIndices;
 
     return this;
   };

@@ -265,6 +265,21 @@ Reset the distribution back to the dumped state. See [_d.dump()_](#ddump). [Chai
     >> d.load(...)
 
 
+### d.dist([distribution])
+
+Set or get the whole distribution.
+
+    >> var d = CategoricalDistribution.create()
+    >> d.dist({
+         red: 3,
+         blue: 1
+       })
+    >> d.dist()
+    { red: 0.75, blue: 0.25 }
+
+If new distribution is set the method is [chainable](#chaining).
+
+
 ### d.print([precision])
 
 Human readable representation of the distribution. Return a string.
@@ -320,10 +335,11 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
+- remove difficulties with zero learning rate 
 - support for scalars, requiring only arrays produces errors.
 - remove d.size(). No public meaning anymore.
 - dump & load api docs
-- easy way to tell the initial distribution. Method d.distribution()?
+- browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
 - Under the hood & rewrite source header comments.

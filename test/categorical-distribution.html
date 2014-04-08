@@ -28,7 +28,50 @@
       var u = unit.create();
       ok(u.head().length === 0);
     });
-    
+
+    test('dist empty', function testCase() {
+      var u = unit.create();
+      deepEqual(u.dist(), {}, 'Should be empty object.');
+
+      u.dist({a: 0, b: 0});
+      deepEqual(u.dist(), {a: 0, b: 0}, 'Should have the cats.');
+    });
+
+    test('dist set when zero weightSum', function testCase() {
+      var u = unit.create().dist({a: 2, b: 1}); // chaining tests
+      u.learn(['a']);
+      deepEqual(u.prob(), [0.75, 0.25]);
+    });
+
+    test('dist invalid', function testCase() {
+      var u = unit.create();
+      throws(function () {
+        u.dist('foo');
+      }, unit.InvalidDistributionException);
+
+      throws(function () {
+        u.dist({a: 3, b: 'foo'});
+      }, unit.InvalidDistributionException);
+
+      throws(function () {
+        u.dist({a: 3, b: -1});
+      }, unit.InvalidDistributionException);
+    });
+
+    test('dist infiltration', function testCase() {
+      var u = unit.create();
+
+      var d = {a: 3, b: 1};
+      u.dist(d);
+      deepEqual(u.prob(), [0.75, 0.25]);
+      d.a = 7;
+      deepEqual(u.prob(), [0.75, 0.25]);
+
+      var e = u.dist();
+      e.a = 7;
+      deepEqual(u.prob(), [0.75, 0.25]);
+    });
+
     test('learn & head & prob', function testCase() {
       var u = unit.create();
       u.learn(['a']);
@@ -353,6 +396,11 @@
       var u = unit.create(0);
       u.learn(['a', 'b']);
       deepEqual(u.prob(['a', 'b']), [0, 0]);
+
+      // Still working if going back?
+      u.learningRate(1);
+      u.learn(['a', 'b']);
+      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
     });
 
     test('learningRate 1, the default', function testCase() {
