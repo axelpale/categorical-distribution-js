@@ -241,15 +241,17 @@ Copy the distribution so that only the given categories are left in the copy. Th
 
 Serialize the state of the distribution to an array for example to be stored to database. See [_d.load()_](#dload).
 
+    >> var d = CategoricalDistribution.create(1.1)
+    >> d.learn(['red', 'red', 'blue', 'green']);
     >> d.dump()
-    [...]
+    ["red", 1.57776, "green", 1, "blue", 0.90909, 1.1]
 
 
 ### d.load()
 
 Reset the distribution back to the dumped state. See [_d.dump()_](#ddump). [Chainable](#chaining).
 
-    >> d.load(...)
+    >> d.load(dumpedArray)
 
 
 ### d.dist([distribution])
@@ -323,9 +325,9 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 ## TODO
 
 - remove difficulties with zero learning rate 
+  - unlearn overflow tests
+  - learn & unlearn underflow tests
 - support for scalars, requiring only arrays produces errors.
-- remove d.size(). No public meaning anymore.
-- dump & load api docs
 - browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
@@ -334,12 +336,13 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - Nice categorical distribution example image
 - More lightweight introduction
 - Absolute peak
-- unlearn overflow tests
-- learn & unlearn underflow tests
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/
 
+## Versioning
+
+[Semantic Versioning 2.0.0](http://semver.org/)
 
 ## License
 

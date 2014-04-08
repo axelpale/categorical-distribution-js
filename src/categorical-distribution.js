@@ -579,16 +579,17 @@ myModule.CategoricalDistribution = (function () {
   ACD.prototype.dump = function () {
     // Serialize to a shallow array.
     // See also load()
-    var i, cat, count,
+    var i, cat, weight,
         s = this.state,
         d = [];
 
-    // Categories and weights
+    // Categories and weights.
+    // Normalize so that event weight is 1 and can be omitted.
     for (i = 0; i < s.order.length; i += 1) {
       cat = s.order[i];
-      count = s.weights[cat];
+      weight = s.weights[cat];
       d.push(cat);
-      d.push(count);
+      d.push(weight / s.eventWeight);
     }
 
     // learningRate
@@ -599,8 +600,7 @@ myModule.CategoricalDistribution = (function () {
       d.push(s.learningRate);
     }
 
-    // eventWeight
-    d.push(s.eventWeight);
+    // eventWeight can be omitted because it is 1.
 
     return d;
   };
@@ -913,7 +913,7 @@ myModule.CategoricalDistribution = (function () {
 
     var i, cat, count, s, rate, weight;
 
-    if (dumpedData.length < 2 || dumpedData.length % 2 !== 0) {
+    if (dumpedData.length < 1 || dumpedData.length % 2 !== 1) {
       throw new InvalidDumpException();
     }
 
@@ -939,7 +939,7 @@ myModule.CategoricalDistribution = (function () {
 
     this.state = s;
 
-    // Second last value is learningRate.
+    // Last value is learningRate.
     // JSON converts Infinity to null.
     rate = dumpedData[i];
     if (rate === null) {
@@ -947,10 +947,6 @@ myModule.CategoricalDistribution = (function () {
     } else {
       this.learningRate(rate);
     }
-
-    // Last value is event weight
-    weight = dumpedData[i + 1];
-    s.eventWeight = weight;
 
     return this;
   };
