@@ -134,27 +134,6 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  var forgetBy = function (acd, n) {
-    // DEPRECATED
-    // Decrease weights so that the sum decreases by n down to zero.
-    // Main forgettion algorithm.
-
-    var s, len, newWeightsSum, ratio, i, cat;
-    
-    s = acd.state;
-    len = s.order.length;
-    newWeightsSum = Math.max(0, s.weightsSum - n);
-    ratio = newWeightsSum / s.weightsSum;
-
-    for (i = 0; i < len; i += 1) {
-      cat = s.order[i];
-      s.weights[cat] *= ratio;
-    }
-
-    s.weightsSum = newWeightsSum;
-  };
-
-
   var multiplyWeights = function (acd, multiplier) {
     // Multiply weights and update weightsSum
 
