@@ -1,4 +1,4 @@
-/*! categorical-distribution - v5.0.0 - 2014-04-08
+/*! categorical-distribution - v5.1.0 - 2014-04-08
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -264,27 +264,6 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  var forgetBy = function (acd, n) {
-    // DEPRECATED
-    // Decrease weights so that the sum decreases by n down to zero.
-    // Main forgettion algorithm.
-
-    var s, len, newWeightsSum, ratio, i, cat;
-    
-    s = acd.state;
-    len = s.order.length;
-    newWeightsSum = Math.max(0, s.weightsSum - n);
-    ratio = newWeightsSum / s.weightsSum;
-
-    for (i = 0; i < len; i += 1) {
-      cat = s.order[i];
-      s.weights[cat] *= ratio;
-    }
-
-    s.weightsSum = newWeightsSum;
-  };
-
-
   var multiplyWeights = function (acd, multiplier) {
     // Multiply weights and update weightsSum
 
@@ -445,17 +424,31 @@ myModule.CategoricalDistribution = (function () {
   ACD.prototype.prob = function (events) {
     // Probabilities of given events
     // 
-    // Return array of numbers.
+    // Return
+    //   array of numbers
+    //     if $events is array
+    //   number
+    //     if $events is string
 
-    var result = [],
+    var result,
         i, ev, p,
         s = this.state;
 
     if (typeof events === 'string') {
-      throw new NotAnArrayException();
-    } else if (typeof events === 'undefined') {
+      if (s.weightsSum === 0) {
+        return 0;
+      } // else
+      if (s.weights.hasOwnProperty(events)) {
+        return s.weights[events] / s.weightsSum;
+      } // else
+      return 0;
+    } // else
+
+    if (typeof events === 'undefined') {
       events = s.order;
     }
+
+    result = [];
 
     // Avoid dividing by zero
     if (s.weightsSum === 0) {
@@ -505,13 +498,13 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  ACD.prototype.peak = function (deviationTolerance) {
+  ACD.prototype.peak = function (tolerance) {
     // Return most probable category (probability X) and all those categories
     // whose probability differs from X by not more than
-    // deviationTolerance * 100 percent.
+    // tolerance * 100 percent.
     //
     // Parameter
-    //   deviationTolerance
+    //   tolerance
     //     number in closed interval [0, 1]
     // 
     // Return array of categories
@@ -524,7 +517,7 @@ myModule.CategoricalDistribution = (function () {
     } // else len > 0
 
     headLikelihood = s.weights[s.order[0]];
-    minLikelihood = headLikelihood - headLikelihood * deviationTolerance;
+    minLikelihood = headLikelihood - headLikelihood * tolerance;
 
     for (i = 1; i < s.order.length; i += 1) {
       if (minLikelihood > s.weights[s.order[i]]) {
@@ -558,6 +551,10 @@ myModule.CategoricalDistribution = (function () {
     acd = new ACD(s.learningRate);
     acds = acd.state;
 
+    if (typeof categories === 'string') {
+      categories = [categories];
+    }
+
     // Previous event weight
     // There seems to be no good reason to change event weight
     acds.eventWeight = s.eventWeight;
@@ -588,18 +585,28 @@ myModule.CategoricalDistribution = (function () {
     // Order of the given events in the list of most probable categories.
     // Most probable category has rank 0.
     // 
-    // Return array of integers.
+    // Return
+    //   array of integers
+    //     if $events is array
+    //   integer
+    //     if $events is string
 
-    var result = [],
+    var result,
         i, ev, p,
         s = this.state;
 
     if (typeof events === 'string') {
-      throw new NotAnArrayException();
-    } else if (typeof events === 'undefined') {
+      if (s.indices.hasOwnProperty(events)) {
+        return s.indices[events];
+      } // else
+      return Infinity;
+    } // else
+
+    if (typeof events === 'undefined') {
       events = s.order; // stupid because result is [0, 1, 2, ...]
     }
  
+    result = [];
     for (i = 0; i < events.length; i += 1) {
       ev = events[i];
       if (s.indices.hasOwnProperty(ev)) {
@@ -799,12 +806,16 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Parameter
     //   events
-    //     an array of events
+    //     a single event or an array of events
     // 
     // Return this for chaining
 
     var i, ev, s, nextEventWeight;
     s = this.state;
+
+    if (typeof events === 'string') {
+      events = [events];
+    }
 
     // Without special handling of s.eventWeight === 0, it stays zero even
     // when s.learningRate is not.
@@ -881,13 +892,16 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Parameter
     //   events
-    //     an array of events
+    //     a single event or an array of events
     // 
     // Return this for chaining
 
     var s, i, cat, newWeight, delta;
-    
     s = this.state;
+
+    if (typeof events === 'string') {
+      events = [events];
+    }
 
     for (i = 0; i < events.length; i += 1) {
       cat = events[i];
@@ -1103,7 +1117,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Version
-  myModule.version = '5.0.0';
+  myModule.version = '5.1.0';
 
 
   // Make utils visible outside

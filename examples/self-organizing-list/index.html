@@ -80,7 +80,7 @@ var update = function () {
   var listElement = jQuery('ul');
   jQuery.each(d.head(), function (index, item) {
     var itemElement = jQuery('#' + item);
-    var prob = d.prob([item])[0];
+    var prob = d.prob(item);
     itemElement.find('.prob').text(prob.toFixed(2));
     itemElement.find('.bar').css('width', (0.5 + prob * 10) + 'em');
     listElement.append(itemElement);
@@ -90,8 +90,7 @@ var update = function () {
 jQuery.each(items, function (index, item) {
   var itemElement = jQuery('#' + item);
   itemElement.click(function () {
-    d.learn([item]);
-    console.log(item + ': ' + d.prob([item])[0]);
+    d.learn(item);
     update();
   });
 });

@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v5.0.0</sup>
+# categorical-distribution.js<sup>v5.1.0</sup>
 
 CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
 
@@ -62,6 +62,11 @@ Learn the distribution from these events. [Chainable](#chaining).
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.25, 0.25]
 
+If there is only one event, array is optional:
+
+    >> d.learn('red')
+
+
 The order of the events matters only if the learning rate is not 1 (the default). See [Under the hood](#under-the-hood) for details.
 
 The following three blocks produce equal results
@@ -74,7 +79,7 @@ The following three blocks produce equal results
 >> d.learn(['red', 'green'])
 ```
 ```
->> d.learn(['red', 'blue']).learn(['red', 'green'])
+>> d.learn(['red', 'blue']).learn(['red']).learn('green')
 ```
 
 
@@ -87,6 +92,10 @@ Forget that these events happened. Do not forget the whole category, only single
     >> d.prob(['red', 'green', 'blue'])
     [0.5, 0.5, 0]
 
+If there is only one event, array is optional:
+
+    >> d.unlearn('red')
+
 
 ### d.prob([events])
 
@@ -97,6 +106,11 @@ Probabilities of events. If parameter is omitted return probabilities of all eve
     [0.5, 0.25]
     >> d.prob()
     [0.5, 0.25, 0.25]
+
+If there is only one event, array is optional:
+
+    >> d.prob('red')
+    0.5
 
 
 ### d.head([n])
@@ -136,6 +150,11 @@ Indices of the events in the list of most probable events. Most probable event h
     // red 2, blue 1, green 1
     >> d.rank(['red', 'blue', 'yellow'])
     [0, 2, Infinity]
+
+If there is only one event, array is optional:
+
+    >> d.rank('blue')
+    2
 
 
 ### d.each(iterator, [context])
@@ -327,7 +346,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - remove difficulties with zero learning rate 
   - unlearn overflow tests
   - learn & unlearn underflow tests
-- support for scalars, requiring only arrays produces errors.
 - browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
@@ -336,6 +354,7 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - Nice categorical distribution example image
 - More lightweight introduction
 - Absolute peak
+- head(0) -> head(Infinity)
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/

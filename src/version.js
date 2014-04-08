@@ -1,2 +1,2 @@
   // Version
-  myModule.version = '5.0.0';
+  myModule.version = '5.1.0';
