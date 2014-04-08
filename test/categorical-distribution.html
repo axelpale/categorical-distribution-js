@@ -270,12 +270,6 @@
       deepEqual(u2.rank(['a', 'b']), [1, 0]);
     });
 
-    test('size', function testCase() {
-      var u = unit.create();
-      u.learn(['a', 'a', 'b']);
-      equal(u.size(), 3);
-    });
-
     test('numCategories', function testCase() {
       var u = unit.create();
       u.learn(['a', 'b']);

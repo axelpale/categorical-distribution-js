@@ -570,15 +570,6 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  ACD.prototype.size = function () {
-    // DEPRECATED
-    // Sum of the weights.
-    // 
-    // Return positive integer.
-    return this.state.weightsSum;
-  };
-
-
   ACD.prototype.numCategories = function () {
     // Return number of categories in memory.
     return this.state.order.length;

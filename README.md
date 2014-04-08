@@ -181,19 +181,6 @@ Draw n samples randomly from the distribution. If isOrdered is true (false if om
     []
 
 
-### d.size()
-
-Number of events that form the distribution. In another words a number of events in the memory even though the order of the events is not memorized. Can't be larger than memory size.
-
-    >> var d = CategoricalDistribution.create(3)
-    >> d.learn(['red', 'blue'])
-    >> d.size()
-    2
-    >> d.learn(['red', 'blue'])
-    >> d.size()
-    3
-
-
 ### d.numCategories()
 
 Number of different events in the distribution.
