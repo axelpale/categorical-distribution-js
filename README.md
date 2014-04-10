@@ -346,9 +346,11 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - remove difficulties with zero learning rate 
   - unlearn overflow tests
   - learn & unlearn underflow tests
+  - significance over importance
 - browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
+- image graph example app
 - Under the hood & rewrite source header comments.
 - Release to NPM
 - Nice categorical distribution example image
