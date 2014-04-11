@@ -30,7 +30,8 @@ Compatible with browsers and Node.js.
 ## Example applications
 
 - [Venn Circles](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/venn-circles/index.html)
-- [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html) 
+- [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html)
+- [Markov Balls](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/markov-balls/index.html)
 
 
 ## Install
@@ -350,7 +351,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
-- image graph example app
 - Under the hood & rewrite source header comments.
 - Release to NPM
 - Nice categorical distribution example image

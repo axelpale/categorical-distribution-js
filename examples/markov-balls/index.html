@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Markov balls</title>
+  <meta charset="utf-8">
+  <style>
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .vertex circle {
+      stroke: #000;
+      stroke-width: 5px;
+    }
+
+    .vertex text {
+      font: 1em sans-serif;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    .learning-rate-form {
+      position: absolute;
+      top: 1em;
+      left: 1em;
+      z-index: 1;
+    }
+
+  </style>
+</head>
+<body>
+
+  <form class="learning-rate-form">
+    <label for="learning-rate-input">Learning rate</label>
+    <input type="text" id="learning-rate-input" name="learning-rate" />
+    <input type="button" id="learning-rate-submit" value="Update" />
+  </form>
+
+  <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.4/d3.min.js"></script>
+  <script src="../../categorical-distribution.js"></script>
+
+  <script>
+    // Requirements:
+    // - There is a set of nodes. Each node represents a random variable.
+    // - Only one node is selected at a time.
+    // - The selected one is aligned to center, big and has always same size.
+    // - Other nodes align below the selected. They are the next ones.
+    // - Node itself can't be among the next ones.
+    // - Sizes of the next ones are proportional to their probability.
+    // - If one of the next is pressed, it becomes selected.
+    // - Each node has its own CategoricalDistribution for the next ones.
+    // - Every time a next one is about to become the new selected,
+    //   the CategoricalDistribution of the currently selected learns
+    //   the new one, making it more probable.
+
+    // Design:
+    // - Separate the probability model and the way it is layed out.
+    // - Every node has a SVG element. Created with d3.js
+    // - Nodes are associated with a color or an image url.
+    // - Nodes have unique identifier, string.
+    // - Each node element has onclick handler
+    // - Handler's behavior depends on the selected node.
+    //   - if handler's node is selected, do nothing
+    //   - else teach the CategoricalDistribution of the selected one
+    // - There is a transition phase where the new selected moves
+    //   to center and the next ones arrange below the selected
+    // - The next ones are slightly pulled downwards to make the arrangement
+    //   happen. Their horisontal order has no meaning.
+    // - force.start() when a new one is selected and the set of next ones
+    //   is solved (cd.head()). This makes moving possible.
+    // - Nodes have equal learning rate.
+    // - There is a method that updates the learning rate of all nodes.
+    // - Declare the nodes in an array at the beginning. This is the data.
+    // - Separate the data and the algorithm; data path vs control path.
+    // - Use terms vertex and vertices
+
+    // References
+    // - http://bl.ocks.org/mbostock/1021953
+
+    var model = (function () {
+
+      // Color palette
+      // http://www.colourlovers.com/palette/694737/Thought_Provoking
+      var ids = ['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A'];
+
+      var vertices = ids.map(function (item) {
+        return {
+          id: item,
+          dist: CategoricalDistribution.create(1.1),
+          color: item
+        };
+      });
+
+      vertices.forEach(function (vertex) {
+        // Form initial distribution. Leave itself out.
+        var i, v, other;
+        other = {};
+        uniformProb = 1 / (vertices.length - 1);
+        for (i = 0; i < vertices.length; i += 1) {
+          v = vertices[i];
+          if (v.id !== vertex.id) {
+            other[v.id] = uniformProb;
+          }
+        }
+        // E.g. for b in [a, b, c, d, e]:
+        // other = {
+        //   a: 0.25,
+        //   c: 0.25, // b filtered out
+        //   d: 0.25,
+        //   e: 0.25
+        // }
+        vertex.dist.dist(other);
+      });
+
+      return vertices;
+    }());
+
+
+    (function learningRateForm(vces) {
+
+      var updateLearningRates = function (newRate) {
+        vces.forEach(function (vertex) {
+          vertex.dist.learningRate(newRate);
+        });
+      };
+
+      var currentLearningRate = function () {
+        return vces[0].dist.learningRate();
+      };
+
+      // A way to play with adaptation speed.
+      var learningRateInput = $('#learning-rate-input');
+      var learningRateSubmit = $('#learning-rate-submit');
+      learningRateSubmit.on('click', function () {
+        var val = parseFloat(learningRateInput.val());
+        if (!isNaN(val) && val > 0) {
+          updateLearningRates(val);
+        }
+      });
+
+      // Show initial learning rate
+      learningRateInput.val(currentLearningRate());
+
+    }(model));
+
+
+    (function graph(vces) {
+
+      // State of the graph
+      var focused = vces[0];
+
+      // Initial width and height
+      var width = 1000,
+          height = 1000;
+
+      // Attraction points
+      var foci = {
+        'focused': {x: width/2, y: height/2},
+        'choices': {x: width/2, y: height*0.75}
+      };
+
+      var SCALE = 60;
+
+      // Full screen
+      // http://stackoverflow.com/a/11948988/638546
+      var svg = d3.select('body').append('svg')
+        .attr('width', '100%')
+        .attr('height', '100%')
+        .attr('viewBox', '0 0 ' + width + ' ' + height)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+      // Prevent too small circles.
+      var visualProbability = d3.scale.linear().domain([0, 1])
+                                               .range([0.01, 1]);
+
+      // Shortcuts
+
+      var prob = function (d) {
+        // Probability of a vertex.
+        // Without special handling prob of focused vertex would be zero.
+        if (d === focused) {
+          return 1.618; // phi times larger than the others together :D
+        }
+        return focused.dist.prob(d.id);
+      };
+      var radius = function (d) {
+        // Area is linearly propotional to the probability
+        //     PI * r^2 = A * p + B
+        // <=>      r^2 = (A * p + B) / PI
+        // <=>        r = sqrt( (A * p + B) / PI )
+        // <=>        r = sqrt( (A / PI) * (p + B/A))    // A' = sqrt(A / PI)
+        // <=>        r = A' * sqrt( p + B/A )           // B' = B/A
+        // <=>        r = A' * sqrt( p + B' )
+        return 2 * SCALE * Math.sqrt( visualProbability(prob(d)) );
+      };
+      var charge = function (d) {
+        return -24 * SCALE * Math.sqrt( visualProbability(prob(d)) );
+      };
+      var fontSize = function (d) {
+        return 0.62 * radius(d);
+      };
+      var label = function (d) {
+        if (d === focused) { return ''; }
+        return prob(d).toFixed(2);
+      };
+
+      var force = d3.layout.force()
+        .gravity(0.04)
+        .charge(charge)
+        .nodes(vces)
+        .size([width, height]);
+
+
+      var updateForceLayout = function () {
+        // Re-executes charge
+        force.start();
+
+        // Reshape
+        svg.selectAll('circle')
+          .attr('r', radius);
+        svg.selectAll('text')
+          .style('font-size', fontSize)
+          .text(label);
+      };
+
+      var clickHandler = function (vertex) {
+        if (vertex === focused) {
+          // No action
+          return;
+        } // else
+
+        focused.dist.learn(vertex.id);
+        focused = vertex;
+
+        // Restart
+        updateForceLayout();
+      };
+
+
+      (function drawVertices() {
+        var vcesEnter = svg.selectAll('.vertex')
+          .data(vces)
+         .enter().append('g')
+          .attr('class', 'vertex')
+          .call(force.drag)
+          .on('click', clickHandler);
+
+        vcesEnter.append('circle')
+          .style('fill', function (d) { return d.color; });
+
+        vcesEnter.append('text')
+          .attr('class', 'label')
+          .attr('dy', '0.3em');
+      }());
+
+
+      force.on("tick", function(e) {
+        // Push vertices toward their designated focus.
+        var k = 0.04 * e.alpha;
+        vces.forEach(function (v, i) {
+          var f;
+          if (v === focused) {
+            f = 'focused';
+          } else {
+            f = 'choices';
+          }
+          v.y += (foci[f].y - v.y) * k;
+          v.x += (foci[f].x - v.x) * k;
+        });
+
+        svg.selectAll('.vertex')
+          .attr('transform', function (d) {
+            return 'translate(' + d.x + ',' + d.y + ')';
+          });
+      });
+
+
+      updateForceLayout();
+      
+    }(model));
+
+
+  </script>
+</body>
+</html>
