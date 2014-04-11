@@ -162,8 +162,8 @@
 
       // Attraction points
       var foci = {
-        'focused': {x: width/2, y: height/2},
-        'choices': {x: width/2, y: height*0.75}
+        'focused': {x: width/2, y: height*1/3},
+        'choices': {x: width/2, y: height*2/3}
       };
 
       var SCALE = 60;
@@ -201,7 +201,7 @@
         return 2 * SCALE * Math.sqrt( visualProbability(prob(d)) );
       };
       var charge = function (d) {
-        return -24 * SCALE * Math.sqrt( visualProbability(prob(d)) );
+        return -40 * SCALE * Math.sqrt( visualProbability(prob(d)) );
       };
       var fontSize = function (d) {
         return 0.62 * radius(d);
@@ -213,6 +213,7 @@
 
       var force = d3.layout.force()
         .gravity(0.04)
+        .friction(0.95) // bigger = less friction. 0.9 is default
         .charge(charge)
         .nodes(vces)
         .size([width, height]);
@@ -263,7 +264,7 @@
 
       force.on("tick", function(e) {
         // Push vertices toward their designated focus.
-        var k = 0.04 * e.alpha;
+        var k = 0.03 * e.alpha;
         vces.forEach(function (v, i) {
           var f;
           if (v === focused) {
