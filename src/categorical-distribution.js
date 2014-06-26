@@ -2,19 +2,14 @@
 
 Adapting Categorical Distribution
 
-Learning rate is a number in range [0, Infinity).
-It tells how important is a learned event in relation to the previous one.
-Learning rate of 1 keeps the importancy same. Importancy of the previous
-events do not drop.
-Rate 1.2 means that the importancy of previous events drops by 1/1.2 for each
-new event. Rate 0.5 means that importancy of previous events grow, making
-changing the distribution hard. Rate 0 means that new events do not affect
-to the distribution at all.
-Rate of 10 means that new events weight 10 times more than the previous one.
-Learning rate is 1 by default.
-Learning rate of Infinity means that all the previous events do not mean
-anything anymore.
+Based on a paper
+Palén 2014. Adapting categorical distribution.
 
+Adaptation rate r is a number in a closed range [0, 1].
+r = 0: no adaptation. All events matter equally.
+r = 1: infinite adaptation. Only the last event matters.
+
+Following paragraphs are DEPRECATED
 
 In this distribution every category has its own numeric weight. When
 an event belonging to a category is taught to the distribution the weight of
@@ -75,9 +70,113 @@ myModule.CategoricalDistribution = (function () {
 
 
 
+  // Private module constants
+  // TODO capitalize
+  var massSumMax = 1000000; // TODO intelligent value
+  var defaultAdaptationRate = 0.1;
+
+  // Public module constants
+  exports.DEFAULT_ADAPTATION_RATE = defaultAdaptationRate;
 
   // Private methods
   
+  var prob = function (weight, learningRate, massSum) {
+    // Return probability
+    var w, r, t, rt, logr;
+    w = weight;
+    r = learningRate;
+    t = massSum;
+
+    if (t === 0) {
+      // Empty distribution
+      return 0;
+    } // else
+    
+    if (r === 0) {
+      return w;
+    } // else
+
+    if (r === 1) {
+      return w / t;
+    } // else
+
+    rt = Math.pow(r, t);
+    logr = Math.log(r);
+    return w * rt * logr / (rt - 1);
+  };
+
+  var massSum = function (learningRate, weightSum) {
+    // Mass calculated from the weightSum. For special cases where
+    // weightSum is known.
+    // 
+    // Parameter
+    //   learningRate in open range (0, 1)
+    //   weightSum in semiopen range [0, Inf)
+    var logRate = Math.log(learningRate);
+    return -Math.log(1 - weightSum * logRate) / logRate;
+  };
+
+  var weightSum = function (learningRate, massSum) {
+    // Weight sum calculated from massSum.
+    var r = learningRate;
+    var rt, logr;
+    if (r === 0) {
+      return 1;
+    } // else
+    if (r === 1) {
+      return massSum;
+    } // else
+    rt = Math.pow(r, massSum);
+    logr = Math.log(r);
+    return (rt - 1) / (rt * logr);
+  };
+
+  var learn = function (acd, cat, mass) {
+    var s, w, r, logr, t, m, rm, rt, limitedMass;
+    s = acd.state;
+    r = s.rate;
+    logr = Math.log(r);
+    t = s.mass;
+    m = mass;
+    var nw, nt;
+
+    if (s.weights.hasOwnProperty(cat)) {
+      w = s.weights[cat];
+    } else {
+      w = 0;
+    }
+
+    if (t + m > massSumMax) {
+      // TODO normalize
+    }
+
+    if (r === 0) {
+      multiplyWeights(acd, 0);
+      nw = 1;
+      nt = -Math.log(1 - logr) / logr;
+    } else if (r === 1) {
+      nw = w + m;
+      nt = t + m;
+    } else {
+      rm = Math.pow(r, m);
+      rt = Math.pow(r, t);
+      nw = w + (rm - 1) / (rm * rt * logr);
+      if (nw < 0) {
+        // Limit weight to zero.
+        limitedMass = -Math.log(1 + w * rt * logr) / logr;
+        nw = 0;
+        nt = t + limitedMass;
+      } else {
+        nt = t + m;
+      }
+    }
+    
+    // Update the distribution
+
+    updateWeight(acd, cat, nw);
+    s.mass = nt;
+  };
+
   var sortOne = function (acd, category) {
     // Move event category to its position in a manner similar to
     // insertion sort.
@@ -133,29 +232,63 @@ myModule.CategoricalDistribution = (function () {
     s.indices[category] = i;
   };
 
+  var updateWeight = function (acd, cat, weight) {
+    // Updates the weight of a category and abstracts out the maintenance of
+    // $order and $indices.
+
+    var s = acd.state;
+
+    if (!s.weights.hasOwnProperty(cat)) {
+      // Unknown category
+      s.order.push(cat);
+      s.indices[cat] = s.order.length - 1;
+    }
+    s.weights[cat] = weight;
+
+    // Move the category to its place.
+    sortOne(acd, cat);
+  };
 
   var multiplyWeights = function (acd, multiplier) {
-    // Multiply weights and update weightsSum
+    // Multiply weights and update mass
+    //
+    // Precondition
+    //   multiplier >= 0
 
     var s, len, newWeightsSum, ratio, i, cat;
     
     s = acd.state;
     len = s.order.length;
 
+    newWeightsSum = 0;
     for (i = 0; i < len; i += 1) {
       cat = s.order[i];
       s.weights[cat] *= multiplier;
+      newWeightsSum += s.weights[cat];
     }
 
-    s.weightsSum *= multiplier;
+    s.mass = massSum(s.rate, newWeightsSum);
   };
 
+  var normalize = function (acd) {
+    // Update the weights and mass so that weightSum === 1.
+    if (acd.mass === 0) {
+      return;
+    } // else
+    if (acd.rate === 0) {
+      // TODO
+    } else if (acd.rate === 1) {
+      // TODO
+    } else {
+      // TODO
+    }
+  };
 
   var sampleSimple = function (acd, n) {
     // Take N samples randomly.
     // Complexity O(n * m) where m is num of categories. This because
     // cumulative distribution function is recalculated for every sample.
-    var x, i, j, cumulativeSum,
+    var x, i, j, maxSum, cumulativeSum,
         result = [],
         s = acd.state;
 
@@ -163,8 +296,10 @@ myModule.CategoricalDistribution = (function () {
       return result;
     } // else
 
+    maxSum = weightSum(s.rate, s.mass);
+
     for (i = 0; i < n; i += 1) {
-      x = randomFromInterval(0, s.weightsSum);
+      x = randomFromInterval(0, maxSum);
       cumulativeSum = 0;
       for (j = 0; j < s.order.length; j += 1) {
         // Add to cumulative sum until greater.
@@ -190,7 +325,7 @@ myModule.CategoricalDistribution = (function () {
     // categories (about 30 or more) even if the results need to be
     // shuffled.
 
-    var rands, cat, cumulativeSum, i, r,
+    var rands, cat, maxSum, cumulativeSum, i, r,
         result = [],
         s = acd.state;
 
@@ -198,7 +333,9 @@ myModule.CategoricalDistribution = (function () {
       return result; // empty array
     } // else
 
-    rands = randomOrderedSetFromInterval(n, 0, s.weightsSum);
+    maxSum = weightSum(s.rate, s.mass);
+
+    rands = randomOrderedSetFromInterval(n, 0, maxSum);
 
     cat = 0;
     cumulativeSum = s.weights[s.order[cat]];
@@ -245,14 +382,28 @@ myModule.CategoricalDistribution = (function () {
     this.message = 'Dump cannot be loaded because of invalid syntax.';
   };
 
+  var InvalidAdaptationRateException = function () {
+    this.name = 'InvalidAdaptationRateException';
+    this.message = 'Adaptation rate should be a real ' +
+                   'number in closed range [0, 1].';
+  };
+
   var InvalidDistributionException = function () {
     this.name = 'InvalidDistributionException';
     this.message = 'Distribution is in unknown form.';
   };
 
+  var InvalidMassException = function () {
+    this.name = 'InvalidMassException';
+    this.message = 'Mass must be a number.';
+  };
+
+
   exports.NotAnArrayException = NotAnArrayException;
   exports.InvalidDumpException = InvalidDumpException;
+  exports.InvalidAdaptationRateException = InvalidAdaptationRateException;
   exports.InvalidDistributionException = InvalidDistributionException;
+  exports.InvalidMassException = InvalidMassException;
 
 
 
@@ -260,24 +411,24 @@ myModule.CategoricalDistribution = (function () {
 
   // Constructor
 
-  var ACD = function (learningRate) {
+  var ACD = function (adaptationRate) {
     // Parameter
-    //   learningRate (optional, default 1)
-    //     positive number
-    //       0: Learn nothing; new events have no effect.
-    //       1: Every event has equal effect regardless of their order
-    //       Infinity: only last counts
+    //   adaptationRate (optional, default 0)
+    //     positive number in closed range [0, 1]
+    //       0.0: Every event has equal effect regardless of their order.
+    //       0.2: An event has 1/(1-0.2) larger effect than the previous.
+    //       1.0: Only the last event matters.
 
     this.state = {
       weights: {}, // Weight for each category
-      weightsSum: 0, // Sum of $weights
-      eventWeight: 1, // Weight of the previous event.
-      learningRate: 1, // How important is new event in relation to the prev
+      mass: 0, // Sum of event masses in the distribution.
+      rate: 1 - defaultAdaptationRate, // Learning rate = 1 - adaptationRate
+      lograte: Infinity, // Cached log(learning rate)
       order: [], // Ordered most probable category first.
       indices: {} // Category indices in $order array
     };
 
-    this.learningRate(learningRate);
+    this.adaptationRate(adaptationRate);
   };
 
   exports.create = function (param1) {
@@ -295,24 +446,21 @@ myModule.CategoricalDistribution = (function () {
     // Probabilities of given events
     // 
     // Return
-    //   array of numbers
+    //   array of probabilities
     //     if $events is array
-    //   number
+    //   probability
     //     if $events is string
 
-    var result,
-        i, ev, p,
+    var result, single,
+        i, ev,
         s = this.state;
 
     if (typeof events === 'string') {
-      if (s.weightsSum === 0) {
-        return 0;
-      } // else
-      if (s.weights.hasOwnProperty(events)) {
-        return s.weights[events] / s.weightsSum;
-      } // else
-      return 0;
-    } // else
+      events = [events];
+      single = true;
+    } else {
+      single = false;
+    }
 
     if (typeof events === 'undefined') {
       events = s.order;
@@ -320,25 +468,18 @@ myModule.CategoricalDistribution = (function () {
 
     result = [];
 
-    // Avoid dividing by zero
-    if (s.weightsSum === 0) {
-      // Array of zeros.
-      for (i = 0; i < events.length; i += 1) {
-        result.push(0);
-      }
-      return result;
-    } // else
- 
     for (i = 0; i < events.length; i += 1) {
       ev = events[i];
       if (s.weights.hasOwnProperty(ev)) {
-        p = s.weights[ev] / s.weightsSum;
-        result.push(p);
+        result.push(prob(s.weights[ev], s.rate, s.mass));
       } else {
         result.push(0);
       }
     }
 
+    if (single) {
+      return result[0];
+    }
     return result;
   };
 
@@ -403,82 +544,82 @@ myModule.CategoricalDistribution = (function () {
   ACD.prototype.subset = function (categories) {
     // Return new CategoricalDistribution that has only the specified
     // categories. Weights stay the same, so probabilities may change but
-    // the ratios between probabilities stay the same. Value of learningRate
-    // stays the same because there seems to be no good reason to select
-    // otherwise.
+    // the ratios between probabilities stay the same. Value of adaptingRate
+    // stays the same.
     //
     // Precondition
     //   Given categories are mutually exclusive i.e. no duplicates.
     // 
     // Complexity
-    //   O(n*log(m) + m*log(n))
-    //     where n = number of given categories and m = this.numCategories
+    //   TODO
 
     var i, cat,
-        s = this.state,
-        acd, acds;
+        origState = this.state,
+        origWeightSum,
+        sub, subState, subMassSum, subWeightSum;
 
-    acd = new ACD(s.learningRate);
-    acds = acd.state;
+    sub = new ACD(1 - origState.rate);
+    subState = sub.state;
 
     if (typeof categories === 'string') {
       categories = [categories];
     }
 
-    // Previous event weight
-    // There seems to be no good reason to change event weight
-    acds.eventWeight = s.eventWeight;
-
     // Weights
+    subWeightSum = 0;
     for (i = 0; i < categories.length; i += 1) {
       cat = categories[i];
-      if (s.weights.hasOwnProperty(cat)) {
-        acds.weights[cat] = s.weights[cat];
-        acds.weightsSum += s.weights[cat];
+      if (origState.weights.hasOwnProperty(cat)) {
+        subState.weights[cat] = origState.weights[cat];
+        subWeightSum += origState.weights[cat];
       }
     }
+
+    // Mass
+    subMassSum = massSum(origState.rate, subWeightSum);
+    subState.mass = subMassSum;
 
     // Order
-    for (i = 0; i < s.order.length; i += 1) {
-      cat = s.order[i];
-      if (acds.weights.hasOwnProperty(cat)) {
-        acds.order.push(cat);
-        acds.indices[cat] = acds.order.length - 1;
+    for (i = 0; i < origState.order.length; i += 1) {
+      cat = origState.order[i];
+      if (subState.weights.hasOwnProperty(cat)) {
+        subState.order.push(cat);
+        subState.indices[cat] = subState.order.length - 1;
       }
     }
 
-    return acd;
+    return sub;
   };
 
 
-  ACD.prototype.rank = function (events) {
-    // Order of the given events in the list of most probable categories.
-    // Most probable category has rank 0.
+  ACD.prototype.rank = function (categories) {
+    // Order of the given categories in the list of most probable categories.
+    // Most probable category has rank 0. Unknown category has rank Infinity.
     // 
     // Return
     //   array of integers
-    //     if $events is array
+    //     if $categories is array
     //   integer
-    //     if $events is string
+    //     if $categories is string
 
     var result,
         i, ev, p,
         s = this.state;
 
-    if (typeof events === 'string') {
-      if (s.indices.hasOwnProperty(events)) {
-        return s.indices[events];
+    if (typeof categories === 'string') {
+      if (s.indices.hasOwnProperty(categories)) {
+        return s.indices[categories];
       } // else
       return Infinity;
     } // else
 
-    if (typeof events === 'undefined') {
-      events = s.order; // stupid because result is [0, 1, 2, ...]
+    if (typeof categories === 'undefined') {
+      categories = s.order; // stupid because result is [0, 1, 2, ...]
     }
  
     result = [];
-    for (i = 0; i < events.length; i += 1) {
-      ev = events[i];
+    for (i = 0; i < categories.length; i += 1) {
+      ev = categories[i];
       if (s.indices.hasOwnProperty(ev)) {
         result.push(s.indices[ev]);
       } else {
@@ -491,7 +632,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   ACD.prototype.each = function (iterator, context) {
-    // Execute function over all categories in probability order.
+    // Execute a function over the categories in probability order.
     // 
     // Parameter
     //   Iterator
@@ -503,14 +644,15 @@ myModule.CategoricalDistribution = (function () {
     //   iterator(category, probability, rank)
     // 
     // Return this for chaining.
-    var i, cat, prob, index,
+    var i, cat, pr, index, order,
         s = this.state;
-    var len = s.order.length;
+    order = s.order.slice(0); // copy because order may change during each
+    var len = order.length;
     for (i = 0; i < len; i += 1) {
-      cat = s.order[i];
-      prob = s.weights[cat] / s.weightsSum;
+      cat = order[i];
+      pr = prob(s.weights[cat], s.rate, s.mass);
       index = s.indices[cat];
-      iterator.call(context, cat, prob, index);
+      iterator.call(context, cat, pr, index);
     }
     return this;
   };
@@ -566,7 +708,7 @@ myModule.CategoricalDistribution = (function () {
       r = sampleOrdered(this, n);
     } else {
 
-      manyCategories = s.order.length > 30;
+      manyCategories = s.order.length > 30; // 30 is only a guess
       if (manyCategories) {
         r = shuffle(sampleOrdered(this, n));
       } else {
@@ -591,23 +733,16 @@ myModule.CategoricalDistribution = (function () {
         d = [];
 
     // Categories and weights.
-    // Normalize so that event weight is 1 and can be omitted.
     for (i = 0; i < s.order.length; i += 1) {
       cat = s.order[i];
-      weight = s.weights[cat];
       d.push(cat);
-      d.push(weight / s.eventWeight);
+      d.push(s.weights[cat]);
     }
 
-    // learningRate
-    // JSON does not support Infinity so use null.
-    if (s.learningRate === Infinity) {
-      d.push(null);
-    } else {
-      d.push(s.learningRate);
-    }
+    // adaptation rate
+    d.push(1 - s.rate);
 
-    // eventWeight can be omitted because it is 1.
+    // No need to include mass as it can be calculated from the weights.
 
     return d;
   };
@@ -671,153 +806,87 @@ myModule.CategoricalDistribution = (function () {
   
   // Mutators
 
-  ACD.prototype.learn = function (events) {
-    // Increase the weights of the categories of the events
+  ACD.prototype.learn = function (events, mass) {
+    // Increase the weights of the categories of the events.
     // 
     // Parameter
     //   events
     //     a single event or an array of events
+    //   mass (optional, default 1)
+    //     Like a multiplier for an event. How large effect to
+    //     the distribution the event has when compared to the events
+    //     with default mass 1. Supports also negative mass.
     // 
-    // Return this for chaining
+    // Return this for chaining.
 
-    var i, ev, s, nextEventWeight;
+    var i, s;
     s = this.state;
 
     if (typeof events === 'string') {
       events = [events];
     }
 
-    // Without special handling of s.eventWeight === 0, it stays zero even
-    // when s.learningRate is not.
-    if (s.eventWeight === 0) {
-      s.eventWeight = 1;
+    if (typeof mass === 'undefined') {
+      mass = 1;
     }
+
+    if (typeof mass !== 'number') {
+      throw new InvalidMassException();
+    } // else
 
     // Increase weight
     for (i = 0; i < events.length; i += 1) {
-
-      // Avoid arithmetic overflow by normalizing the distribution.
-      // Normalization complexity is O(n) so normalize only when needed.
-      // Risky variables are s.weights, s.weightsSum and s.eventWeight.
-
-      // Risky situation 1
-      // s.learningRate is Infinity.
-      if (s.learningRate > Number.MAX_VALUE) {
-        multiplyWeights(this, 0);
-        s.eventWeight = 1;
-      } else {
-        // assert s.learningRate < Infinity
-
-        // Risky situation 2
-        // s.eventWeight grows to Infinity.
-        nextEventWeight = s.eventWeight * s.learningRate;
-        if (nextEventWeight > Number.MAX_VALUE) {
-          // Multiply all so that eventWeight drops back to 1 and 
-          // can therefore be multiplied by s.learningRate without
-          // breaking the upper limit.
-          multiplyWeights(this, 1 / s.eventWeight);
-          s.eventWeight = s.learningRate;
-        } else {
-
-          // Risky situation 3
-          // s.weightsSum grows to Infinity.
-          // Because s.weightsSum >= s.weights[ev] for all ev, s.weights[ev]
-          // do not need separate risk handling.
-          if (s.weightsSum + nextEventWeight > Number.MAX_VALUE) {
-            // Multiply all so that s.weightsSum drops back to 1.
-            s.eventWeight *= s.learningRate / s.weightsSum;
-            multiplyWeights(this, 1 / s.weightsSum);
-          } else {
-
-            // Default case.
-            // Change the importancy of the new event
-            s.eventWeight *= s.learningRate;
-          }
-        }
-      }
-
-      ev = events[i];
-      if (s.weights.hasOwnProperty(ev)) {
-        s.weights[ev] += s.eventWeight;
-      } else {
-        s.weights[ev] = s.eventWeight;
-        s.order.push(ev);
-        s.indices[ev] = s.order.length - 1;
-      }
-
-      // Update the sum
-      s.weightsSum += s.eventWeight;
-
-      // Move the category to its place.
-      sortOne(this, ev);
+      learn(this, events[i], mass);
     }
 
     return this;
   };
   
 
-  ACD.prototype.unlearn = function (events) {
+  ACD.prototype.unlearn = function (events, mass) {
     // Decrease the weights of these events.
     // Inverse of learn.
     // 
     // Parameter
     //   events
     //     a single event or an array of events
+    //   mass (optional, default 1)
+    //     See d.learn.
     // 
     // Return this for chaining
 
-    var s, i, cat, newWeight, delta;
-    s = this.state;
-
-    if (typeof events === 'string') {
-      events = [events];
+    if (typeof mass === 'undefined') {
+      mass = 1;
     }
 
-    for (i = 0; i < events.length; i += 1) {
-      cat = events[i];
+    if (typeof mass !== 'number') {
+      throw new InvalidMassException();
+    } // else
 
-      if (s.weights.hasOwnProperty(cat)) {
-
-        // Decrease weight and limit to zero
-        newWeight = Math.max(0, s.weights[cat] - s.eventWeight);
-        delta = newWeight - s.weights[cat];
-        s.weights[cat] = newWeight;
-
-        // Decrease sum the same amount
-        s.weightsSum += delta; // delta < 0
-
-        // Move the category to its place.
-        sortOne(this, cat);
-
-        if (s.learningRate !== 0) {
-          s.eventWeight /= s.learningRate;
-        }
-      } // else do nothing
-    }
-
-    return this;
+    return this.learn(events, -mass);
   };
 
 
-  ACD.prototype.learningRate = function (newLearningRate) {
-    // Get or set learningRate.
-    var s, delta, i;
+  ACD.prototype.adaptationRate = function (newAdaptationRate) {
+    // Get or set adaptationRate.
+    var s, newRate;
     s = this.state;
 
-    if (typeof newLearningRate === 'undefined') {
-      return s.learningRate;
+    if (typeof newAdaptationRate === 'undefined') {
+      return 1 - s.rate;
     } // else
 
-    if (typeof newLearningRate !== 'number') {
-      // Invalid parameter; do nothing
-      return this;
-    }
+    if (typeof newAdaptationRate !== 'number' ||
+        newAdaptationRate < 0 ||
+        newAdaptationRate > 1) {
+      throw new InvalidAdaptationRateException();
+    } // else
 
-    // Limit
-    newLearningRate = Math.max(0, newLearningRate);
+    newRate = 1 - newAdaptationRate;
 
-    // Assert s.weightsSum === newMemorySize
-    s.learningRate = newLearningRate;
+    // TODO change mass.
+
+    s.rate = newRate;
 
     return this;
   };
@@ -845,7 +914,7 @@ myModule.CategoricalDistribution = (function () {
     if (typeof newDistribution === 'undefined') {
       w = s.weights;
 
-      if (s.weightsSum === 0) {
+      if (s.mass === 0) {
         // All weights must be 0
         return clone(w);
       } // else
@@ -854,7 +923,7 @@ myModule.CategoricalDistribution = (function () {
       distr = {};
       for (cat in s.weights) {
         if (w.hasOwnProperty(cat)) {
-          distr[cat] = w[cat] / s.weightsSum;
+          distr[cat] = prob(w[cat], s.rate, s.mass);
         }
       }
       return distr;
@@ -889,6 +958,7 @@ myModule.CategoricalDistribution = (function () {
       throw new InvalidDistributionException();
     }
 
+
     // Order the categories
     newOrder.sort(function (a, b) {
       return newWeights[b] - newWeights[a];
@@ -900,16 +970,8 @@ myModule.CategoricalDistribution = (function () {
       newIndices[newOrder[i]] = i;
     }
 
-    // Adjust eventWeight so that it would have similar effect as before.
-    // The effect is proportional to the weightsSum.
-    if (newWeightsSum === 0 || s.weightsSum === 0) {
-      s.eventWeight = 1;
-    } else {
-      s.eventWeight = s.eventWeight * newWeightsSum / s.weightsSum;
-    }
-
     s.weights = newWeights;
-    s.weightsSum = newWeightsSum;
+    s.mass = massSum(s.rate, newWeightsSum);
     s.order = newOrder;
     s.indices = newIndices;
 
@@ -922,10 +984,11 @@ myModule.CategoricalDistribution = (function () {
     // 
     // Precondition
     //   dumped contains weights in probability order, most probable first.
+    //   dumped contains adaptationRate as the last
     // 
     // Return this for chaining.
 
-    var i, cat, count, s, rate, weight;
+    var i, cat, weight, nextMassSum, s, weightsSum;
 
     if (dumpedData.length < 1 || dumpedData.length % 2 !== 1) {
       throw new InvalidDumpException();
@@ -934,33 +997,28 @@ myModule.CategoricalDistribution = (function () {
     // Init
     s = {
       weights: {},
-      weightsSum: 0,
-      eventWeight: 1,
-      learningRate: 1,
+      mass: 0,
+      rate: 1 - defaultAdaptationRate,
       order: [],
       indices: {}
     };
+    weightsSum = 0;
 
     // Pairs
     for (i = 0; i < dumpedData.length - 2; i += 2) {
       cat = dumpedData[i];
-      count = dumpedData[i + 1];
-      s.weights[cat] = count;
-      s.weightsSum += count;
+      weight = dumpedData[i + 1];
+      s.weights[cat] = weight;
+      weightsSum += weight;
       s.order.push(cat);
       s.indices[cat] = s.order.length - 1;
     }
 
-    this.state = s;
+    // Second last value is adaptationRate.
+    s.mass = massSum(dumpedData[i], weightsSum);
+    s.rate = 1 - dumpedData[i];
 
-    // Last value is learningRate.
-    // JSON converts Infinity to null.
-    rate = dumpedData[i];
-    if (rate === null) {
-      s.learningRate = Infinity;
-    } else {
-      this.learningRate(rate);
-    }
+    this.state = s;
 
     return this;
   };

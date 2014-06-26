@@ -13,6 +13,7 @@
   <script type="text/javascript">
     
     var unit = CategoricalDistribution;
+    var util = CategoricalDistribution.util;
 
     var epsilon = 0.00001; // for floating point comparison
 
@@ -23,6 +24,75 @@
       return result;
     };
 
+    var isAlmostEqual = function (a, b) {
+      if (typeof a === 'number' && typeof b === 'number') {
+        return (Math.abs(a - b) < epsilon);
+      } // else
+      return a === b;
+    };
+    
+    var isAlmostDeepEqual = function (a, b) {
+      // TODO recursive
+      var i, equal;
+
+      if (util.isArray(a)) {
+        if (util.isArray(b)) {
+          // Both are arrays
+          if (a.length === b.length) {
+            equal = true;
+            for (i = 0; i < a.length && equal; i += 1) {
+              equal = equal && isAlmostDeepEqual(a[i], b[i]);
+            }
+            return equal;
+          } // else
+          return false;
+        } // else
+        return false;
+      } else if (typeof a === 'object') {
+        if (typeof b === 'object') {
+          // Both are objects
+          equal = true;
+          for (i in a) {
+            if (a.hasOwnProperty(i) && b.hasOwnProperty(i)) {
+              equal = equal && isAlmostDeepEqual(a[i], b[i]);
+              if (!equal) {
+                break;
+              }
+            } else {
+              return false;
+            }
+          }
+          return equal;
+        }
+      } else {
+        return isAlmostEqual(a, b);
+      }
+    };
+
+    var almostEqual = function (a, b, msg) {
+      if (isAlmostEqual(a, b)) {
+        ok(true, msg);
+      } else {
+        ok(false, msg + '\n' +
+                  'Actual: ' + a + '\n' +
+                  'Expected: ' + b);
+      }
+    };
+
+    var almostDeepEqual = function (a, b, msg) {
+      if (isAlmostDeepEqual(a, b)) {
+        ok(true, msg);
+      } else {
+        ok(false, msg + '\n' +
+                  'Actual: ' + JSON.stringify(a) + '\n' +
+                  'Expected: ' + JSON.stringify(b));
+      }
+    };
+
+
+    // Example distributions
+    //   a, b: TODO
+
 
     test('initial state', function testCase() {
       // Test no throws
@@ -31,18 +101,23 @@
       ok(u.state.hasOwnProperty('weights'));
     });
 
+    test('dist basic', function testCase() {
+      var u = unit.create(epsilon).dist({a: 3, b: 1}); // chaining test
+      almostDeepEqual(u.prob(['a', 'b']), [0.75, 0.25]);
+    });
+
     test('dist empty', function testCase() {
-      var u = unit.create();
-      deepEqual(u.dist(), {}, 'Should be empty object.');
+      var u = unit.create(epsilon);
+      deepEqual(u.dist(), {}, 'Should be an empty object.');
 
       u.dist({a: 0, b: 0});
       deepEqual(u.dist(), {a: 0, b: 0}, 'Should have the cats.');
     });
 
     test('dist set when zero weightSum', function testCase() {
-      var u = unit.create().dist({a: 2, b: 1}); // chaining tests
+      var u = unit.create(epsilon).dist({a: 2, b: 1});
       u.learn(['a']);
-      deepEqual(u.prob(), [0.75, 0.25]);
+      almostDeepEqual(u.prob(['a', 'b']), [0.75, 0.25]);
     });
 
     test('dist invalid', function testCase() {
@@ -61,45 +136,47 @@
     });
 
     test('dist infiltration', function testCase() {
+      // Try to infiltrate through the distribution object.
       var u = unit.create();
 
       var d = {a: 3, b: 1};
       u.dist(d);
-      deepEqual(u.prob(), [0.75, 0.25]);
+      almostDeepEqual(u.prob(), [0.75, 0.25]);
       d.a = 7;
-      deepEqual(u.prob(), [0.75, 0.25]);
+      almostDeepEqual(u.prob(), [0.75, 0.25]);
 
       var e = u.dist();
       e.a = 7;
-      deepEqual(u.prob(), [0.75, 0.25]);
+      almostDeepEqual(u.prob(), [0.75, 0.25]);
     });
 
     test('learn & prob & rank scalars', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       // Use aa to find if strings are used as arrays by mistake.
       u.learn('aa').learn('b');
-      strictEqual(u.prob('b'), 0.5);
-      strictEqual(u.prob('aa'), 0.5);
-      strictEqual(u.rank('b'), 0);
-      strictEqual(u.rank('aa'), 1);
+      almostEqual(u.prob('b'), 0.5);
+      almostEqual(u.prob('aa'), 0.5);
+      almostEqual(u.rank('b'), 0);
+      almostEqual(u.rank('aa'), 1);
     });
 
+
     test('learn & prob & rank arrays', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['aa', 'b']);
-      deepEqual(u.prob(['aa', 'b']), [0.5, 0.5]);
-      deepEqual(u.rank(['aa', 'b']), [1, 0]);
+      almostDeepEqual(u.prob(['aa', 'b']), [0.5, 0.5]);
+      almostDeepEqual(u.rank(['aa', 'b']), [1, 0]);
     });
 
     test('prob & rank without params', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['red', 'green']);
       deepEqual(u.rank(), [0, 1]);
-      deepEqual(u.prob(), [0.5, 0.5]);
+      almostDeepEqual(u.prob(), [0.5, 0.5]);
     });
 
     test('peak', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
       // P(a) = 0.5
       // P(b) = 0.3
@@ -117,16 +194,81 @@
     });
 
     test('peak out of range', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c']);
 
       deepEqual(u.peak(-0.2), u.peak(0));
       deepEqual(u.peak(1.3), u.peak(1));
     });
 
+    test('learn with mass', function testCase() {
+      var u = unit.create(epsilon);
+      u.learn('a', 3);
+      u.learn('b');
+      almostDeepEqual(u.prob(['a', 'b']), [0.75, 0.25]);
+    });
+
+    test('learn with mass 0', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'b'], 0);
+      deepEqual(u.prob(['a', 'b']), [0, 0], 'Should have no effect');
+    });
+
+    test('learn with invalid massMultiplier', function testCase() {
+      var u = unit.create();
+      throws(function () {
+        u.learn('a', '1');
+      }, unit.InvalidMassException, 'Should be a number');
+    });
+
+    test('unlearn', function testCase() {
+      var u = unit.create(epsilon);
+
+      u.learn(['a', 'a', 'b']);
+      almostDeepEqual(u.prob(['a', 'b']), [2/3, 1/3]);
+      
+      u.unlearn(['a']);
+      almostDeepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
+    });
+
+    test('unlearn scalar', function testCase() {
+      var u = unit.create(epsilon);
+      u.learn(['a', 'b']);
+      u.unlearn('b');
+      strictEqual(u.prob('b'), 0);
+    });
+
+    test('unlearn over', function testCase() {
+      var u = unit.create(0.2);
+      u.learn(['a', 'b']);   // + b
+      u.unlearn(['b', 'b']); // - bb
+      almostDeepEqual(u.prob(['a', 'b']), [1, 0]);
+    });
+
+    test('unlearn with mass', function testCase() {
+      var u = unit.create(epsilon * 0.01);
+      u.learn(['a', 'a', 'b'], 3);  // a 6, b 3
+      u.unlearn(['a', 'b'], 2);     // a 4, b 1
+      almostDeepEqual(u.prob(['a', 'b']), [0.8, 0.2]);
+    });
+
+    test('unlearn with mass 0', function testCase() {
+      var u = unit.create(epsilon * 0.01);
+      u.learn(['a', 'a', 'a', 'b'], 3); // a 9, b 3
+      u.unlearn(['a', 'b'], 0);         // a 9, b 3, no effect
+      almostDeepEqual(u.prob(['a', 'b']), [0.75, 0.25]);
+    });
+
+    test('unlearn with invalid mass', function testCase() {
+      var u = unit.create();
+      throws(function () {
+        u.unlearn('a', '1');
+      }, unit.InvalidMassException, 'Should be a number');
+    });
+
     test('subset', function testCase() {
 
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'd']);
       // P(a) = 0.4
       // P(b) = 0.3
@@ -145,34 +287,9 @@
     });
 
     test('subset scalar', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'b']);
       strictEqual(u.subset('a').prob('a'), 1);
-    });
-
-    test('unlearn scalar', function testCase() {
-      var u = unit.create();
-      u.learn(['a', 'b']);
-      u.unlearn('b');
-      strictEqual(u.prob('b'), 0);
-    });
-
-    test('rank & unlearn', function testCase() {
-      var u = unit.create();
-
-      u.learn(['a', 'a', 'b']);
-      deepEqual(u.rank(['a', 'b']), [0, 1]);
-      
-      u.learn(['b']);
-      u.unlearn(['a']);
-      deepEqual(u.rank(['a', 'b']), [1, 0]);
-    });
-
-    test('unlearn over', function testCase() {
-      var u = unit.create();
-      u.learn(['a', 'b']);   // + b
-      u.unlearn(['b', 'b']); // - bb
-      deepEqual(u.prob(['a', 'b']), [1, 0]);
     });
 
     test('each', function testCase() {
@@ -180,7 +297,7 @@
       var numCategories = 0;
       u.learn(['a', 'a', 'b']);
       u.each(function (cat, prob, rank) {
-        strictEqual(u.prob(cat), prob);
+        almostEqual(u.prob(cat), prob);
         strictEqual(u.rank(cat), rank);
         numCategories += 1;
       });
@@ -197,11 +314,11 @@
     });
 
     test('map', function testCase() {
-      var u = unit.create();
+      var u = unit.create(epsilon);
       var numCategories = 0;
       u.learn(['a', 'a', 'b']);
       var head = u.map(function (cat, prob, rank) {
-        strictEqual(u.prob(cat), prob);
+        almostEqual(u.prob(cat), prob);
         strictEqual(u.rank(cat), rank);
         return cat;
       });
@@ -212,7 +329,7 @@
     test('sample', function testCase() {
       // Non-deterministic test!!!
       // = May fail sometimes
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'b']);
 
       var i, s,
@@ -235,7 +352,7 @@
     test('sample, ordered', function testCase() {
       // Non-deterministic test!!!
       // = May fail sometimes
-      var u = unit.create();
+      var u = unit.create(epsilon);
       u.learn(['a', 'a', 'b']);
 
       var i, s,
@@ -273,13 +390,6 @@
       deepEqual(u.sample(0), []);
     });
 
-    test('copy', function testCase() {
-      var u = unit.create();
-      u.learn(['a', 'b']);
-      var u2 = u.copy();
-      deepEqual(u2.rank(['a', 'b']), [1, 0]);
-    });
-
     test('numCategories', function testCase() {
       var u = unit.create();
       u.learn(['a', 'b']);
@@ -287,14 +397,14 @@
     });
 
     test('chaining', function testCase() {
-      var u = unit.create().learn(['aa','bb','aa']);
+      var u = unit.create(epsilon).learn(['aa','bb','aa']);
       var p = u.subset(['aa']).learn(['bb']).prob(['aa']);
-      deepEqual(p, [2/3]);
+      almostDeepEqual(p, [2/3]);
       
       p = u.each(function (cat) {
         u.unlearn([cat]);
       }).prob('aa');
-      strictEqual(p, 1);
+      almostEqual(p, 1);
     });
 
 
@@ -314,31 +424,31 @@
       deepEqual(u2.dump(), dumped);
       deepEqual(u2.head(), u.head());
       deepEqual(u2.rank(['a', 'b']), [0, 1]);
-      strictEqual(u.learningRate(), u2.learningRate());
+      strictEqual(u.adaptationRate(), u2.adaptationRate());
     });
 
     test('dump & load via JSON', function testCase() {
       // Tracks down possible incompability with JSON.
       // For example Infinity is not supported.
 
-      var u, u2, u3;
+      var u1, u2, u3;
 
-      u  = unit.create();
+      u1  = unit.create();
       u2 = unit.create();
-      u.learn(['a', 'a', 'b']);
-      var strDump = JSON.stringify(u.dump());
+      u1.learn(['a', 'a', 'b']);
+      var strDump = JSON.stringify(u1.dump());
       u2.load(JSON.parse(strDump));
 
-      deepEqual(u.dump(), u2.dump());
-      deepEqual(u2.head(), u.head());
+      deepEqual(u1.dump(), u2.dump());
+      deepEqual(u2.head(), u1.head());
       deepEqual(u2.rank(['a', 'b']), [0, 1]);
-      strictEqual(u.learningRate(), u2.learningRate());
+      strictEqual(u1.adaptationRate(), u2.adaptationRate());
 
-      u3 = unit.create(2);
+      u3 = unit.create(0.2);
       u3.learn(['a', 'a', 'b']);
       var strDump = JSON.stringify(u3.dump());
       u2.load(JSON.parse(strDump));
-      strictEqual(u2.learningRate(), 2);
+      almostEqual(u2.adaptationRate(), 0.2);
     });
 
     test('load invalid', function testCase() {
@@ -356,13 +466,19 @@
       
     });
 
+    test('copy', function testCase() {
+      var u = unit.create();
+      u.learn(['a', 'b']);
+      var u2 = u.copy();
+      deepEqual(u2.rank(['a', 'b']), [1, 0]);
+    });
 
 
 
     // Printing
 
     test('print', function testCase() {
-      var u = unit.create().learn(['red','blue','blue']);
+      var u = unit.create(epsilon*epsilon*0.01).learn(['red','blue','blue']);
       var zero = 'blue 1\nred  0\n';
       var two = 'blue 0.67\nred  0.33\n';
       var three = 'blue 0.667\nred  0.333\n';
@@ -385,7 +501,7 @@
     });
 
     test('print categories of whitespaces', function testCase() {
-      var u = unit.create().learn(['\n', '']);
+      var u = unit.create(epsilon).learn(['\n', '']);
       strictEqual(u.print(), '  0.50\n\n 0.50\n');
     });
 
@@ -393,24 +509,25 @@
 
 
 
-    // Adaptation: learningRate
+    // adaptationRate
 
-    test('learningRate 0', function testCase() {
+    /*
+    test('adaptationRate 0, min', function testCase() {
       var u = unit.create(0);
       u.learn(['a', 'b']);
-      deepEqual(u.prob(['a', 'b']), [0, 0]);
+      almostDeepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
 
-      // Still working if going back?
-      u.learningRate(1);
+      // Still working if going back to default?
+      u.adaptationRate(unit.DEFAULT_ADAPTATION_RATE);
       u.learn(['a', 'b']);
-      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
+      almostDeepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
     });
 
-    test('learningRate 1, the default', function testCase() {
-      var u = unit.create();
+    test('adaptationRate 1, max', function testCase() {
+      var u = unit.create(1);
       u.learn(['a', 'b']);
-      strictEqual(u.learningRate(), 1);
-      deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
+      strictEqual(u.adaptationRate(), 1); // Still the same
+      deepEqual(u.prob(['a', 'b']), [0, 1]);
     });
 
     test('learningRate 2', function testCase() {
@@ -426,11 +543,9 @@
     });
 
     test('learningRate negative', function testCase() {
-      // Same effect as zero
-      var u = unit.create(-1);
-      u.learn(['a', 'b']);
-      strictEqual(u.learningRate(), 0);
-      deepEqual(u.prob(['a', 'b']), [0, 0]);
+      throws(function () {
+        var u = unit.create(-1);
+      }, unit.InvalidLearningRateException);
     });
 
     test('learningRate reset', function testCase() {
@@ -478,7 +593,7 @@
       u.learn('b'); // without normalization weightsSum goes to Infinity
       deepEqual(u.prob(['a', 'b']), [0.5, 0.5]);
     });
-
+    */
 
 
 
