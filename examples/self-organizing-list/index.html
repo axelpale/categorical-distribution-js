@@ -70,32 +70,36 @@
 
 <script>
 
-var d = CategoricalDistribution.create(1.1);
-var items = ['file', 'edit', 'find', 'view', 'help'].reverse();
-
-d.learn(items);
+var cd = CategoricalDistribution.create();
+cd.learn(['file', 'edit', 'find', 'view', 'help'].reverse());
 
 var update = function () {
-  // Reorder the elements
+  // Reorder the elements in probability order and
+  // update the measures.
+
   var listElement = jQuery('ul');
-  jQuery.each(d.head(), function (index, item) {
+  cd.each(function (item, prob) {
+    // Display the probability of the item
     var itemElement = jQuery('#' + item);
-    var prob = d.prob(item);
     itemElement.find('.prob').text(prob.toFixed(2));
     itemElement.find('.bar').css('width', (0.5 + prob * 10) + 'em');
+    // Move item to the bottom. The most probable item is moved
+    // first and the least probable the last, so therefore
+    // the items become arranged in probability order.
     listElement.append(itemElement);
   });
 };
 
-jQuery.each(items, function (index, item) {
+// Clicking an item increases its probability
+cd.each(function (item) {
   var itemElement = jQuery('#' + item);
   itemElement.click(function () {
-    d.learn(item);
+    cd.learn(item);
     update();
   });
 });
 
-// Initial order, bar width and probability measure
+// Initial order, sets bar width and probability measure
 update();
 
 </script>

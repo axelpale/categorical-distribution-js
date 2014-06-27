@@ -25,22 +25,9 @@
       text-anchor: middle;
     }
 
-    .learning-rate-form {
-      position: absolute;
-      top: 1em;
-      left: 1em;
-      z-index: 1;
-    }
-
   </style>
 </head>
 <body>
-
-  <form class="learning-rate-form">
-    <label for="learning-rate-input">Learning rate</label>
-    <input type="text" id="learning-rate-input" name="learning-rate" />
-    <input type="button" id="learning-rate-submit" value="Update" />
-  </form>
 
   <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.4/d3.min.js"></script>
@@ -75,8 +62,6 @@
     //   happen. Their horisontal order has no meaning.
     // - force.start() when a new one is selected and the set of next ones
     //   is solved (cd.head()). This makes moving possible.
-    // - Nodes have equal learning rate.
-    // - There is a method that updates the learning rate of all nodes.
     // - Declare the nodes in an array at the beginning. This is the data.
     // - Separate the data and the algorithm; data path vs control path.
     // - Use terms vertex and vertices
@@ -93,7 +78,7 @@
       var vertices = ids.map(function (item) {
         return {
           id: item,
-          dist: CategoricalDistribution.create(1.1),
+          dist: CategoricalDistribution.create(),
           color: item
         };
       });
@@ -121,34 +106,6 @@
 
       return vertices;
     }());
-
-
-    (function learningRateForm(vces) {
-
-      var updateLearningRates = function (newRate) {
-        vces.forEach(function (vertex) {
-          vertex.dist.learningRate(newRate);
-        });
-      };
-
-      var currentLearningRate = function () {
-        return vces[0].dist.learningRate();
-      };
-
-      // A way to play with adaptation speed.
-      var learningRateInput = $('#learning-rate-input');
-      var learningRateSubmit = $('#learning-rate-submit');
-      learningRateSubmit.on('click', function () {
-        var val = parseFloat(learningRateInput.val());
-        if (!isNaN(val) && val > 0) {
-          updateLearningRates(val);
-        }
-      });
-
-      // Show initial learning rate
-      learningRateInput.val(currentLearningRate());
-
-    }(model));
 
 
     (function graph(vces) {

@@ -24,22 +24,9 @@
       text-anchor: middle;
     }
 
-    .learning-rate-form {
-      position: absolute;
-      top: 1em;
-      left: 1em;
-      z-index: 1;
-    }
-
   </style>
 </head>
 <body>
-
-  <form class="learning-rate-form">
-    <label for="learning-rate-input">Learning rate</label>
-    <input type="text" id="learning-rate-input" name="learning-rate" />
-    <input type="button" id="learning-rate-submit" value="Update" />
-  </form>
 
   <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.4/d3.min.js"></script>
@@ -49,20 +36,8 @@
 
     // Color palette
     // http://www.colourlovers.com/palette/694737/Thought_Provoking
-    var cd = CategoricalDistribution.create(1.2)
-      .learn(['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A']);
-
-    // A way to play with adaptation speed.
-    var learningRateInput = $('#learning-rate-input');
-    var learningRateSubmit = $('#learning-rate-submit');
-    learningRateSubmit.on('click', function () {
-      var val = parseFloat(learningRateInput.val());
-      if (!isNaN(val) && val > 0) {
-        cd.learningRate(val);
-      }
-    });
-    // Show initial learning rate
-    learningRateInput.val(cd.learningRate());
+    var cd = CategoricalDistribution.create();
+    cd.learn(['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A']);
 
 
     var nodes = cd.map(function (cat) {
