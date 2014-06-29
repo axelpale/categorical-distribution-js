@@ -3,7 +3,14 @@
 Compatible with browsers and Node.js.
 
 
-## Introduction to categorical distributions
+## Example applications
+
+- [Venn Circles](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/venn-circles/index.html)
+- [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html)
+- [Markov Balls](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/markov-balls/index.html)
+
+
+## Introduction
 
 CategoricalDistribution models a categorical probability distribution. In another words it learns how probable a thing is in a set of things.
 
@@ -35,13 +42,6 @@ To store or load the distribution, it can be serialized into an array by `d.dump
     ['dislike', 'like', 'like']
 
 
-## Example applications
-
-- [Venn Circles](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/venn-circles/index.html)
-- [Self-Organizing List](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/self-organizing-list/index.html)
-- [Markov Balls](https://rawgithub.com/axelpale/categorical-distribution-js/master/examples/markov-balls/index.html)
-
-
 ## Install
 
 (not yet working) Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
@@ -54,6 +54,8 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 
 
 ### CategoricalDistribution.create()
+
+Construct a new CategoricalDistribution instance.
 
     >> var d = CategoricalDistribution.create()
 
@@ -71,7 +73,7 @@ If there is only one event, array is optional:
 
     >> d.learn('red')
 
-The optional __weight__ parameter can be given to add custom amount of weight to the category. Default weight is 1.
+The optional _weight_ parameter can be given to add custom amount of weight to the category. Default weight is 1.
 
     >> var cd = CategoricalDistribution.create()
     >> cd.learn('red', 2)
@@ -332,7 +334,7 @@ Great for making plugins.
 
 ## Under the hood
 
-Each category has a weight that is a number representing the number of samples from the category. The probability of the category equals to its weight divided by the sum of all the weights.
+Each category has a weight that is a number that represents the number of samples from the category. The probability of the category equals to its weight divided by the sum of all the weights. The sum is kept in its own variable and therefore the need to recalculate the sum is avoided.
 
 
 ## History
