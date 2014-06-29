@@ -1,20 +1,28 @@
 # categorical-distribution.js<sup>v6.0.0</sup>
 
-CategoricalDistribution models a categorical distribution of a sequence of events. In another words it learns how probable is a thing in a set of things. For example imagine a jar of marbles in many colors. You pick a marble from the jar and _teach_ the color of the marble to the CategoricalDistribution. Now you can use the distribution to predict the color of the next pick and also predict how probable it is. The more you teach the distribution, the more accurate the predictions become.
+Compatible with browsers and Node.js.
 
-An _event_ is represented by the name of its category. For example a event of a marble being blue belongs to the category 'blue'. Therefore when we refer to this event by writing the string 'blue'.
 
-Create a new distribution by `var d = CategoricalDistribution.create()`. Teach events to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
+## Introduction to categorical distributions
+
+CategoricalDistribution models a categorical probability distribution. In another words it learns how probable a thing is in a set of things.
+
+For example imagine a jar filled with unknown number of colored marbles. You sample (i.e. pick) a handful of marbles from the jar and _teach_ their colors to the CategoricalDistribution. Now you can use the distribution to predict the color of the next sample and how probable it is. The more samples you teach, the more accurate the predictions become.
+
+Every sample belongs to a category. For example blue marble belongs to the category 'blue'. Therefore when we represent the sample by the string 'blue'.
+
+
+## Usage
+
+Create a new distribution by `var d = CategoricalDistribution.create()`. Teach samples to it by `d.learn(['red', 'green', 'red', 'blue'])`. This produces the distribution in the image below.
 
 ![Example distribution](../master/doc/example-distribution-180.png?raw=true)
 
-After this you can find the probabilities of events by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable events can be found by `d.head(2)`, returning `['red', 'blue']`, or by `d.peak(0.2)`, returning only `['red']` because probability of 'blue' is over 20 % smaller than 'red'. Positions of events in the list of the most probable events can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]`.
+After this you can find the probabilities of categories by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable ones can be found by `d.head(2)`, returning `['red', 'blue']`. Their probability placing can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]` i.e. 'red' is the most probable, 'green' is the third and 'yellow' has no placing because there hasn't been any 'yellow' samples.
 
 To replay the learned distribution, samples can be taken by `d.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `d.copy()` or cut by `d.subset(['blue', 'green'])` to allow further modifications without altering the original one.
 
-To store or send the distribution, it can be serialized to an array by `d.dump()` and read back by `d.load(dumpedArray)`.
-
-Compatible with browsers and Node.js.
+To store or load the distribution, it can be serialized into an array by `d.dump()` and read back by `d.load(dumpedArray)`.
 
 
 ## Basic example
@@ -45,18 +53,14 @@ Browsers: download and `<script src="categorical-distribution.js"></script>`
 ## API
 
 
-### CategoricalDistribution.create([learningRate])
+### CategoricalDistribution.create()
 
     >> var d = CategoricalDistribution.create()
 
-By default each event has equal weight in the distribution. Set the learning rate greater than 1 (1 is default) for adapting distribution. Learning rate 1.5 makes new event 1.5 times more important than the previous. In another words the effect of the previous events dimishes to 1/1.5. See [Under the hood](#under-the-hood) for details.
 
-    >> var e = CategoricalDistribution.create(1.5)
+### d.learn(samples, [weight=1])
 
-
-### d.learn(events)
-
-Learn the distribution from these events. [Chainable](#chaining).
+Learn these samples. [Chainable](#chaining).
 
     >> var d = CategoricalDistribution.create()
     >> d.learn(['red', 'blue', 'red', 'green'])
@@ -67,8 +71,15 @@ If there is only one event, array is optional:
 
     >> d.learn('red')
 
+The optional __weight__ parameter can be given to add custom amount of weight to the category. Default weight is 1.
 
-The order of the events matters only if the learning rate is not 1 (the default). See [Under the hood](#under-the-hood) for details.
+    >> var cd = CategoricalDistribution.create()
+    >> cd.learn('red', 2)
+    >> cd.learn('green')
+    >> cd.prob('green')
+    0.33...
+
+See [Under the hood](#under-the-hood) for details.
 
 The following three blocks produce equal results
 
@@ -84,9 +95,9 @@ The following three blocks produce equal results
 ```
 
 
-### d.unlearn(events)
+### d.unlearn(samples, [weight=1])
 
-Forget that these events happened. Do not forget the whole category, only single events. Inverse of [d.learn](#dlearnevents). [Chainable](#chaining).
+Forget the these samples. Do not forget the whole category, only the samples. Inverse of [d.learn](#dlearneventsweight1). [Chainable](#chaining).
 
     // red 2, blue 1, green 1
     >> d.unlearn(['red', 'blue'])
@@ -98,9 +109,9 @@ If there is only one event, array is optional:
     >> d.unlearn('red')
 
 
-### d.prob([events])
+### d.prob([categories])
 
-Probabilities of events. If parameter is omitted return probabilities of all events in the probability order. 
+Probabilities of the categories. If parameter is omitted return probabilities of all categories in their probability order.
 
     // red 2, blue 1, green 1
     >> d.prob(['red', 'green'])
@@ -108,7 +119,7 @@ Probabilities of events. If parameter is omitted return probabilities of all eve
     >> d.prob()
     [0.5, 0.25, 0.25]
 
-If there is only one event, array is optional:
+If given only one category, array is optional:
 
     >> d.prob('red')
     0.5
@@ -116,15 +127,17 @@ If there is only one event, array is optional:
 
 ### d.head([n])
 
-Return n most probable categories ordered by their probability. If n is omitted or zero, return all the categories.
+Return n most probable categories ordered by their probability. If n is omitted or large, return all the categories.
 
     // red 2, blue 1, green 1
     >> d.head()
     ['red', 'green', 'blue']
-    >> d.head(0)
+    >> d.head(1000)
     ['red', 'green', 'blue']
     >> d.head(1)
     ['red']
+    >> d.head(0)
+    []
 
 
 ### d.peak(tolerance)
@@ -136,23 +149,23 @@ List the most probable category and the categories whose probability differs fro
     [0.5, 0.3, 0.2]
     >> d.peak(0)
     ['red']
-    >> d.peak(0.3)
+    >> d.peak(0.3)  // >= 0.5 - 0.3*0.5 = 0.35
     ['red']
-    >> d.peak(0.5)
+    >> d.peak(0.5)  // >= 0.5 - 0.5*0.5 = 0.25
     ['red', 'blue']
-    >> d.peak(0.6)
+    >> d.peak(0.6)  // >= 0.5 - 0.6*0.5 = 0.20
     ['red', 'blue', 'green']
 
 
-### d.rank(events)
+### d.rank(categories)
 
-Indices of the events in the list of most probable events. Most probable event has the rank 0. If two events have same probability the more recent one will have a ranking closer to the top. Yet unknown events have rank Infinity.
+Indices of the categories in the list of the categories ordered by their probability. Most probable category has the rank 0. If two categories have same probability the more recent one will have a ranking closer to rank 0. Yet unknown categories have rank Infinity.
 
     // red 2, blue 1, green 1
     >> d.rank(['red', 'blue', 'yellow'])
     [0, 2, Infinity]
 
-If there is only one event, array is optional:
+If given only one category, array is optional:
 
     >> d.rank('blue')
     2
@@ -203,37 +216,18 @@ Draw n samples randomly from the distribution. If isOrdered is true (false if om
 
 ### d.numCategories()
 
-Number of different events in the distribution.
+Number of categories in the distribution.
 
     // red 2, blue 1, green 1
     >> d.numCategories()
     3
 
 
-### d.learningRate([newLearningRate])
-
-Get or set how important is an event in relation to the previous ones. With learning rate zero the new events do not have any effect. Learning rate Infinity makes the distribution to be based only on the last event. See [Under the hood](#under-the-hood) for detail.
-
-```
->> var d = CategoricalDistribution.create()
->> d.learningRate()
-1
-```
-```
->> var c = CategoricalDistribution.create(1.5)
->> c.learningRate()
-1.5
->> c.learningRate(Infinity)
->> c.learningRate()
-Infinity
-```
-
-
 ### d.copy()
 
 Duplicate the distribution. Modifications to the duplicate do not alter the original.
 
-    // red 2, blue 1, green 1
+    // d: red 2, blue 1, green 1
     >> var c = d.copy()
     >> c.learn(['blue', 'blue'])
     >> d.head()
@@ -244,7 +238,7 @@ Duplicate the distribution. Modifications to the duplicate do not alter the orig
 
 ### d.subset(categories)
 
-Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but the ratios between them stay the same. Learning rate stays the same.
+Copy the distribution so that only the given categories are left in the copy. The probabilities of the categories may change but the ratios between them stay the same.
 
     // red 2, blue 1, green 1
     >> var c = d.subset(['red', 'blue'])
@@ -259,12 +253,12 @@ Copy the distribution so that only the given categories are left in the copy. Th
 
 ### d.dump()
 
-Serialize the state of the distribution to an array for example to be stored to database. See [_d.load()_](#dload).
+Serialize the state of the distribution to an array, for example to be stored to a database. See [_d.load()_](#dload).
 
-    >> var d = CategoricalDistribution.create(1.1)
+    >> var d = CategoricalDistribution.create()
     >> d.learn(['red', 'red', 'blue', 'green']);
     >> d.dump()
-    ["red", 1.57776, "green", 1, "blue", 0.90909, 1.1]
+    ["red", 2, "green", 1, "blue", 1]
 
 
 ### d.load()
@@ -286,10 +280,12 @@ Set or get the whole distribution.
     >> d.dist()
     { red: 0.75, blue: 0.25 }
 
-If new distribution is set the method is [chainable](#chaining).
+Without the parameter a probability distribution is retuned, i.e. the weights are normalized to sum up to 1.
+
+If distribution parameter is given then the method is [chainable](#chaining). The given distribution does not have to be normalized.
 
 
-### d.print([precision])
+### d.print([precision=2])
 
 Human readable representation of the distribution. Return a string.
     
@@ -313,7 +309,7 @@ Human readable representation of the distribution. Return a string.
 
 ## Chaining
 
-Most of the functions that do not return anything else are chainable.
+Most of the functions that do not return anything special, or return a new CategoricalDistribution, are chainable.
 
     >> var d = CategoricalDistribution.create().learn(['red', 'green', 'blue'])
     >> d.subset(['green', 'blue']).prob()
@@ -336,6 +332,8 @@ Great for making plugins.
 
 ## Under the hood
 
+Each category has a weight that is a number representing the number of samples from the category. The probability of the category equals to its weight divided by the sum of all the weights.
+
 
 ## History
 
@@ -344,19 +342,13 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 
 ## TODO
 
-- remove difficulties with zero learning rate 
-  - unlearn overflow tests
-  - learn & unlearn underflow tests
-  - significance over importance
 - browser compability tests
 - test subset and others with duplicate categories
 - reorder methods
 - Under the hood & rewrite source header comments.
 - Release to NPM
 - Nice categorical distribution example image
-- More lightweight introduction
 - Absolute peak
-- head(0) -> head(Infinity)
 - See also:
   - https://github.com/jergason/categorical
   - http://jamisondance.com/10-15-2012/categorical-distribution-in-javascript/
