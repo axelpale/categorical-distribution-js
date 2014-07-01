@@ -526,6 +526,31 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
+  CatDist.prototype.entropy = function () {
+    // Calculate information theoretic entropy of the distribution in bits.
+    // Entropy = average information of a sample.
+    // Return
+    //   Positive number. Bits.
+
+    var st, ent, i, cat, p;
+    st = this.state;
+    ent = 0;
+
+    for (i = 0; i < st.order.length; i += 1) {
+      cat = st.order[i];
+      p = st.w[cat] / st.wSum;
+      // In the context of entropy, 0*log(0) = 0
+      if (p > 0) {
+        ent -= p * Math.log(p);
+      }
+    }
+
+    // Nats to bits. Natural log to base-2 log.
+    ent /= Math.log(2);
+    return ent;
+  };
+
+
   CatDist.prototype.each = function (iterator, context) {
     // Execute a function over the categories in probability order.
     // 

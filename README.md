@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v6.0.0</sup>
+# categorical-distribution.js<sup>v6.1.0</sup>
 
 Compatible with browsers and Node.js.
 
