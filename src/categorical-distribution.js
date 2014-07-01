@@ -16,10 +16,10 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Private module constants
-  var EXAMPLE = 777;
+  //var EXAMPLE = 777;
 
   // Public module constants
-  exports.EXAMPLE = EXAMPLE;
+  //exports.EXAMPLE = EXAMPLE;
 
 
 
