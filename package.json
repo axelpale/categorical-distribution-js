@@ -1,6 +1,6 @@
 {
   "name": "categorical-distribution",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Categorical distribution.",
   "homepage": "https://github.com/axelpale/categorical-distribution-js",
   "main": "categorical-distribution.js",

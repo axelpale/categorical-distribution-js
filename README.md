@@ -1,4 +1,4 @@
-# categorical-distribution.js<sup>v6.1.0</sup>
+# categorical-distribution.js<sup>v6.2.0</sup>
 
 Compatible with browsers and Node.js.
 
@@ -25,7 +25,7 @@ Create a new distribution by `var d = CategoricalDistribution.create()`. Teach s
 
 ![Example distribution](../master/doc/example-distribution-180.png?raw=true)
 
-After this you can find the probabilities of categories by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable ones can be found by `d.head(2)`, returning `['red', 'blue']`. Their probability placing can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]` i.e. 'red' is the most probable, 'green' is the third and 'yellow' has no placing because there hasn't been any 'yellow' samples.
+After this you can find the probabilities of categories by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable ones can be found by `d.mode(2)`, returning `['red', 'blue']`. Their probability placing can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]` i.e. 'red' is the most probable, 'green' is the third and 'yellow' has no placing because there hasn't been any 'yellow' samples.
 
 To replay the learned distribution, samples can be taken by `d.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `d.copy()` or cut by `d.subset(['blue', 'green'])` to allow further modifications without altering the original one.
 
@@ -127,18 +127,19 @@ If given only one category, array is optional:
     0.5
 
 
-### d.head([n])
+### d.mode([n])
+_Alias d.head([n])_
 
 Return n most probable categories ordered by their probability. If n is omitted or large, return all the categories.
 
     // red 2, blue 1, green 1
-    >> d.head()
+    >> d.mode()
     ['red', 'green', 'blue']
-    >> d.head(1000)
+    >> d.mode(1000)
     ['red', 'green', 'blue']
-    >> d.head(1)
+    >> d.mode(1)
     ['red']
-    >> d.head(0)
+    >> d.mode(0)
     []
 
 
@@ -232,9 +233,9 @@ Duplicate the distribution. Modifications to the duplicate do not alter the orig
     // d: red 2, blue 1, green 1
     >> var c = d.copy()
     >> c.learn(['blue', 'blue'])
-    >> d.head()
+    >> d.mode()
     ['red', 'green', 'blue']
-    >> c.head()
+    >> c.mode()
     ['blue', 'red', 'green']
 
 

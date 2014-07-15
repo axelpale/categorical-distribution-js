@@ -1,4 +1,4 @@
-/*! categorical-distribution - v6.1.0 - 2014-07-01
+/*! categorical-distribution - v6.2.0 - 2014-07-16
  * https://github.com/axelpale/categorical-distribution-js
  *
  * Copyright (c) 2014 Akseli Palen <akseli.palen@gmail.com>;
@@ -510,7 +510,7 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  CatDist.prototype.head = function (n) {
+  CatDist.prototype.mode = function (n) {
     // N most probable categories
     // 
     // Parameter
@@ -531,6 +531,8 @@ myModule.CategoricalDistribution = (function () {
     } // else
     return [];
   };
+  // Alias
+  CatDist.prototype.head = CatDist.prototype.mode;
 
 
   CatDist.prototype.peak = function (tolerance) {
@@ -1069,7 +1071,7 @@ myModule.CategoricalDistribution = (function () {
 
 
   // Version
-  myModule.version = '6.1.0';
+  myModule.version = '6.2.0';
 
 
   // Make utils visible outside

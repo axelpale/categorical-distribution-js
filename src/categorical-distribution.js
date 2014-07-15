@@ -380,7 +380,7 @@ myModule.CategoricalDistribution = (function () {
   };
 
 
-  CatDist.prototype.head = function (n) {
+  CatDist.prototype.mode = function (n) {
     // N most probable categories
     // 
     // Parameter
@@ -401,6 +401,8 @@ myModule.CategoricalDistribution = (function () {
     } // else
     return [];
   };
+  // Alias
+  CatDist.prototype.head = CatDist.prototype.mode;
 
 
   CatDist.prototype.peak = function (tolerance) {

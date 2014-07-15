@@ -176,10 +176,21 @@
       almostDeepEqual(u.prob(), [0.5, 0.5]);
     });
 
-    test('prob when zero wSum ', function testCase() {
+    test('prob when zero wSum', function testCase() {
       var u = unit.create();
       u.learn('a', 0);
       almostDeepEqual(u.prob('a'), 0);
+    });
+
+    test('mode & head', function testCase() {
+      var u = unit.create();
+      u.learn('red', 4).learn('green', 3).learn('blue', 1);
+      deepEqual(u.mode(), ['red', 'green', 'blue']); // bit odd
+      deepEqual(u.mode(1), ['red']);
+      deepEqual(u.mode(2), ['red', 'green']);
+      deepEqual(u.head(), ['red', 'green', 'blue']); // bit odd
+      deepEqual(u.head(1), ['red']);
+      deepEqual(u.head(2), ['red', 'green']);
     });
 
     test('peak', function testCase() {
