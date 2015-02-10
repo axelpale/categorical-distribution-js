@@ -16,7 +16,7 @@ CategoricalDistribution models a categorical probability distribution. In anothe
 
 For example imagine a jar filled with unknown number of colored marbles. You sample (i.e. pick) a handful of marbles from the jar and _teach_ their colors to the CategoricalDistribution. Now you can use the distribution to predict the color of the next sample and how probable it is. The more samples you teach, the more accurate the predictions become.
 
-Every sample belongs to a category. For example blue marble belongs to the category 'blue'. Therefore when we represent the sample by the string 'blue'.
+Every sample belongs to a category. For example blue marble belongs to the category 'blue'. Therefore we represent the sample by the string 'blue'.
 
 
 ## Usage
@@ -27,7 +27,7 @@ Create a new distribution by `var d = CategoricalDistribution.create()`. Teach s
 
 After this you can find the probabilities of categories by `d.prob(['red', 'blue', 'yellow'])`, returning an array `[0.5, 0.25, 0]`. The most probable ones can be found by `d.mode(2)`, returning `['red', 'blue']`. Their probability placing can be found by `d.rank(['red', 'green', 'yellow'])`, returning `[0, 2, Infinity]` i.e. 'red' is the most probable, 'green' is the third and 'yellow' has no placing because there hasn't been any 'yellow' samples.
 
-To replay the learned distribution, samples can be taken by `d.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `d.copy()` or cut by `d.subset(['blue', 'green'])` to allow further modifications without altering the original one.
+To replay the learned distribution, samples can be taken by `d.sample(4)`, returning an array similar to `['blue', 'red', 'red', 'green']`. The distribution can also be copied by `d.copy()` or filtered by `d.subset(['blue', 'green'])` to allow further modifications without altering the original one.
 
 To store or load the distribution, it can be serialized into an array by `d.dump()` and read back by `d.load(dumpedArray)`.
 
