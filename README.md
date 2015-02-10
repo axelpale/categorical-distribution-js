@@ -1,6 +1,6 @@
 # categorical-distribution.js<sup>v6.2.0</sup>
 
-Compatible with browsers and Node.js.
+Feature-rich categorical probability distribution for browsers and Node.js.
 
 
 ## Example applications
@@ -291,7 +291,7 @@ If distribution parameter is given then the method is [chainable](#chaining). Th
 ### d.print([precision=2])
 
 Human readable representation of the distribution. Return a string.
-    
+
     // red 4, blue 1, green 1
     >> d.print()
     "red   0.67
