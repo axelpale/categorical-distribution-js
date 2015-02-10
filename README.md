@@ -44,7 +44,7 @@ To store or load the distribution, it can be serialized into an array by `d.dump
 
 ## Install
 
-(not yet working) Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
+Node.js: `npm install categorical-distribution` and `var CategoricalDistribution = require('categorical-distribution');`
 
 Browsers: download and `<script src="categorical-distribution.js"></script>`
 
@@ -349,7 +349,6 @@ The development of categorical-distribution.js started in 2013 as a part of expe
 - test subset and others with duplicate categories
 - reorder methods
 - Under the hood & rewrite source header comments.
-- Release to NPM
 - Nice categorical distribution example image
 - Absolute peak
 - See also:
