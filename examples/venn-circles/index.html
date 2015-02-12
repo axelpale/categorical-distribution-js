@@ -46,7 +46,7 @@
 
     // Initial width and height
     var width = 1000,
-        height = 1000;
+        height = 600;
 
     // Full screen
     // http://stackoverflow.com/a/11948988/638546
@@ -72,7 +72,7 @@
       // <=>        r = sqrt( (A / PI) * (p + B/A))    // A' = sqrt(A / PI)
       // <=>        r = A' * sqrt( p + B/A )           // B' = B/A
       // <=>        r = A' * sqrt( p + B' )
-      return 200 * Math.sqrt( visualProbability(prob(d)) );
+      return 160 * Math.sqrt( visualProbability(prob(d)) );
     };
     var charge = function (d) {
       return -2400 * Math.sqrt( visualProbability(prob(d)) );
